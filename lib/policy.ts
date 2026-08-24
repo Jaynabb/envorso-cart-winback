@@ -61,6 +61,26 @@ export const MAX_RANK_BY_RETURN_LIKELIHOOD: Record<FanRead["return_likelihood"],
   unknown: 5,
 };
 
+/**
+ * The floor, and why there has to be one.
+ *
+ * The ceiling above only bounds over-spending, which quietly assumes the only
+ * expensive mistake is generosity. It isn't. If we have decided to contact a fan
+ * who has no reason to come back on their own, a nudge that costs nothing is a
+ * touch spent for nothing — we used the one message they'll open and gave them
+ * no reason to act.
+ *
+ * This applies only once the system has decided to make an offer at all. Sending
+ * nothing is always available and is often right; what isn't available is
+ * sending something too thin to work and calling it caution.
+ */
+export const MIN_RANK_BY_RETURN_LIKELIHOOD: Record<FanRead["return_likelihood"], number> = {
+  high: 0,
+  medium: 0,
+  low: 2,
+  unknown: 2,
+};
+
 /* ---------- the gate ------------------------------------------------ */
 
 export type GateResult =
@@ -154,12 +174,21 @@ export function checkInvariants(cart: CartFacts, decision: Decision): string[] {
     problems.push(`CATALOG: ${offer.label} isn't available here — ${eligibility.why}`);
   }
 
-  // The spine, as arithmetic.
+  // The spine, as arithmetic — bounded on both sides.
   if (decision.read) {
-    const ceiling = MAX_RANK_BY_RETURN_LIKELIHOOD[decision.read.return_likelihood];
+    const likelihood = decision.read.return_likelihood;
+    const ceiling = MAX_RANK_BY_RETURN_LIKELIHOOD[likelihood];
+    const floor = MIN_RANK_BY_RETURN_LIKELIHOOD[likelihood];
+
     if (offer.concession_rank > ceiling) {
       problems.push(
-        `INCREMENTALITY: ${offer.label} was offered to a fan read as "${decision.read.return_likelihood}" to return unaided. At that likelihood the ceiling is rank ${ceiling}; this is rank ${offer.concession_rank}. We are paying for a sale we may already have had.`,
+        `INCREMENTALITY: ${offer.label} was offered to a fan read as "${likelihood}" to return unaided. At that likelihood the ceiling is rank ${ceiling}; this is rank ${offer.concession_rank}. We are paying for a sale we may already have had.`,
+      );
+    }
+
+    if (offer.concession_rank < floor) {
+      problems.push(
+        `TOKEN OFFER: ${offer.label} was sent to a fan read as "${likelihood}" to return unaided — someone with no reason to come back by themselves. At that likelihood an offer needs to be at least rank ${floor} to be worth making; this is rank ${offer.concession_rank}. Either make it worth making or hold and send nothing.`,
       );
     }
   }

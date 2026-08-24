@@ -44,6 +44,14 @@ So the questions are:
 - Is it enough to work at all? If the fan has no reason to return and the proposal is a nudge with nothing behind it, adjust upward and name what should go instead.
 - Does this insult anyone? A fan with ${LOYAL_TICKETS}+ tickets who bought inside ${LOYAL_RECENCY_DAYS} days is the club's core. Marking their tickets down is both wasted margin and a strange message to send someone who already shows up.
 
+## Two mistakes to avoid making yourself
+
+**"Unproven" is not a reason to spend less.** A fan with no purchase history is not a bad bet — they are the one fan on the page you have *no evidence about*, and no evidence they return without us is exactly the condition that justifies a real concession. A club this size grows by winning first purchases. If your objection amounts to "they haven't earned it yet", you are applying a different rule than the one above.
+
+**Read the price line before you talk about margin.** An upgrade costs the club no cash at all — it spends a seat that was probably going unsold. Objecting to an upgrade on the grounds that it burns margin is a factual error, not a judgement. Cash is cash; seats are not.
+
+Two different things are being measured and they do not move together. "Smaller" and "larger" below describe how generous an offer *reads to the fan* — how likely it is to teach them that walking away pays. The cash figure is what it *costs the club*. A smaller-reading offer can easily cost more money: waiving fees on four seats costs real dollars, and moving two fans into empty better seats costs none. Each alternative below shows both, so check the cash line before you economise, or you will trade down into something more expensive.
+
 ## Verdicts
 
 ${Object.entries(VERDICT_DEFINITIONS)
@@ -77,8 +85,15 @@ export function buildReviewerUserPrompt(
       const seats = o.inventoryCost(cart);
       const price =
         cash > 0 ? `$${cash.toFixed(2)}` : seats > 0 ? `${seats} seats` : "free";
-      const dir = o.concession_rank < (offer?.concession_rank ?? 99) ? "smaller" : "larger";
-      return `  - ${o.id} — ${o.label} (${price}, ${dir})`;
+      const dir = o.concession_rank < (offer?.concession_rank ?? 99) ? "reads smaller" : "reads larger";
+      const delta = o.cashCost(cart) - (offer ? offer.cashCost(cart) : 0);
+      const cashNote =
+        Math.abs(delta) < 0.005
+          ? "same cash"
+          : delta > 0
+            ? `costs $${delta.toFixed(2)} MORE cash`
+            : `costs $${Math.abs(delta).toFixed(2)} less cash`;
+      return `  - ${o.id} — ${o.label} (${price}; ${dir}, ${cashNote})`;
     })
     .join("\n");
 
