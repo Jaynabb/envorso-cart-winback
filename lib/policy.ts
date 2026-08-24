@@ -47,14 +47,14 @@ export const DAILY_CASH_CAP = 250;
 export const ESCALATION_CASH_USD = 15;
 
 /**
- * The most a concession may be, given how likely the fan was to return anyway.
+ * The strongest offer allowed, given how likely the fan was to return anyway.
  *
- * This is the spine of the whole system expressed as arithmetic. Ranks come
+ * This is the spine of the whole system expressed as arithmetic. Strength comes
  * from the catalog: 0 nothing, 1 reminder, 2 fee waiver, 3 upgrade, 4-5 cash.
  * A fan who is probably coming back gets a reminder at most. Money is reserved
  * for the cases where we have no reason to believe they return without it.
  */
-export const MAX_RANK_BY_RETURN_LIKELIHOOD: Record<FanRead["return_likelihood"], number> = {
+export const MAX_STRENGTH_BY_RETURN_LIKELIHOOD: Record<FanRead["return_likelihood"], number> = {
   high: 1,
   medium: 3,
   low: 5,
@@ -74,7 +74,7 @@ export const MAX_RANK_BY_RETURN_LIKELIHOOD: Record<FanRead["return_likelihood"],
  * nothing is always available and is often right; what isn't available is
  * sending something too thin to work and calling it caution.
  */
-export const MIN_RANK_BY_RETURN_LIKELIHOOD: Record<FanRead["return_likelihood"], number> = {
+export const MIN_STRENGTH_BY_RETURN_LIKELIHOOD: Record<FanRead["return_likelihood"], number> = {
   high: 0,
   medium: 0,
   low: 2,
@@ -191,8 +191,8 @@ export function affordable(cashCost: number): boolean {
 }
 
 /** Does this proposal need the better reviewer model? */
-export function needsEscalation(cashCost: number, concessionRank: number): boolean {
-  return cashCost > ESCALATION_CASH_USD || concessionRank >= 4;
+export function needsEscalation(cashCost: number, offerRank: number): boolean {
+  return cashCost > ESCALATION_CASH_USD || offerRank >= 4;
 }
 
 /* ---------- the invariants ------------------------------------------ */
@@ -234,18 +234,18 @@ export function checkInvariants(cart: CartFacts, decision: Decision): string[] {
   // The spine, as arithmetic — bounded on both sides.
   if (decision.read) {
     const likelihood = decision.read.return_likelihood;
-    const ceiling = MAX_RANK_BY_RETURN_LIKELIHOOD[likelihood];
-    const floor = MIN_RANK_BY_RETURN_LIKELIHOOD[likelihood];
+    const ceiling = MAX_STRENGTH_BY_RETURN_LIKELIHOOD[likelihood];
+    const floor = MIN_STRENGTH_BY_RETURN_LIKELIHOOD[likelihood];
 
-    if (offer.concession_rank > ceiling) {
+    if (offer.strength > ceiling) {
       problems.push(
-        `INCREMENTALITY: ${offer.label} was offered to a fan read as "${likelihood}" to return unaided. At that likelihood the ceiling is rank ${ceiling}; this is rank ${offer.concession_rank}. We are paying for a sale we may already have had.`,
+        `INCREMENTALITY: ${offer.label} was offered to a fan read as "${likelihood}" to return unaided. The strongest offer allowed at that likelihood is ${ceiling}; this one is ${offer.strength}. We are paying for a sale we may already have had.`,
       );
     }
 
-    if (offer.concession_rank < floor) {
+    if (offer.strength < floor) {
       problems.push(
-        `TOKEN OFFER: ${offer.label} was sent to a fan read as "${likelihood}" to return unaided — someone with no reason to come back by themselves. At that likelihood an offer needs to be at least rank ${floor} to be worth making; this is rank ${offer.concession_rank}. Either make it worth making or hold and send nothing.`,
+        `TOKEN OFFER: ${offer.label} was sent to a fan read as "${likelihood}" to return unaided — someone with no reason to come back by themselves. At that likelihood an offer needs to be at least ${floor} to be worth making; this one is ${offer.strength}. Either make it worth making or hold and send nothing.`,
       );
     }
   }

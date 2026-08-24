@@ -10,8 +10,8 @@ import {
   needsEscalation,
   checkInvariants,
   checkRunTotal,
-  MAX_RANK_BY_RETURN_LIKELIHOOD,
-  MIN_RANK_BY_RETURN_LIKELIHOOD,
+  MAX_STRENGTH_BY_RETURN_LIKELIHOOD,
+  MIN_STRENGTH_BY_RETURN_LIKELIHOOD,
 } from "./policy.ts";
 import { readFan } from "./analyst.ts";
 import { proposeOffer } from "./strategist.ts";
@@ -142,7 +142,7 @@ async function decideOne(
   }
 
   // [3] Reviewer — independent, and paid for properly when cash is at stake.
-  const escalate = needsEscalation(proposed.cashCost(cart), proposed.concession_rank);
+  const escalate = needsEscalation(proposed.cashCost(cart), proposed.strength);
   const reviewResult = await reviewOffer(cart, read, proposal.offer_id, escalate);
   if (!reviewResult.ok) {
     return {
@@ -177,12 +177,12 @@ async function decideOne(
     // an offer below the point of sending it — found on a 60-cart run, where a
     // fan with no reason to return got a bare reminder. Sending nothing is
     // always allowed; sending something too thin to work is not.
-    const rank = replacement?.concession_rank ?? -1;
+    const strength = replacement?.strength ?? -1;
     const valid =
       replacement &&
       affordable(replacement.cashCost(cart)) &&
-      rank <= MAX_RANK_BY_RETURN_LIKELIHOOD[read.return_likelihood] &&
-      (rank >= MIN_RANK_BY_RETURN_LIKELIHOOD[read.return_likelihood] ||
+      strength <= MAX_STRENGTH_BY_RETURN_LIKELIHOOD[read.return_likelihood] &&
+      (strength >= MIN_STRENGTH_BY_RETURN_LIKELIHOOD[read.return_likelihood] ||
         replacement.id === "no_offer") &&
       replacement.id !== proposed.id;
 

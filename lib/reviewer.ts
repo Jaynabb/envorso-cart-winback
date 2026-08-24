@@ -9,7 +9,7 @@ import { describeOffer, eligibleOffers, getOffer } from "./catalog.ts";
 import {
   LOYAL_RECENCY_DAYS,
   LOYAL_TICKETS,
-  MAX_RANK_BY_RETURN_LIKELIHOOD,
+  MAX_STRENGTH_BY_RETURN_LIKELIHOOD,
   affordable,
 } from "./policy.ts";
 import { runAgent, ESCALATION_MODEL, type AgentResult } from "./agent.ts";
@@ -22,7 +22,7 @@ import { runAgent, ESCALATION_MODEL, type AgentResult } from "./agent.ts";
  * whole point: a fluent justification is exactly what a rationalising agent
  * produces, and a reviewer shown the argument tends to grade the argument.
  * Withholding it means the only thing it can do is work out for itself whether
- * these facts justify this concession.
+ * these facts justify an offer this strong.
  *
  * It runs on the cheap model by default and escalates when real cash is at
  * stake — capability where the money is, rather than uniformly.
@@ -37,7 +37,7 @@ An offer can be wrong in two directions and you are responsible for both. Too ge
 
 ## The rule you are enforcing
 
-Concession depth tracks one thing: how unlikely the fan was to come back on their own. Not the size of the cart, not how loyal they are.
+How strong an offer can be tracks one thing: how unlikely the fan was to come back on their own. Not the size of the cart, not how loyal they are.
 
 So the questions are:
 - If we sent this fan nothing at all, would they have finished the cart anyway? If probably yes, then anything with a cost attached is money burned, and the verdict is veto.
@@ -47,7 +47,7 @@ So the questions are:
 
 ## Two mistakes to avoid making yourself
 
-**"Unproven" is not a reason to spend less.** A fan with no purchase history is not a bad bet — they are the one fan on the page you have *no evidence about*, and no evidence they return without us is exactly the condition that justifies a real concession. A club this size grows by winning first purchases. If your objection amounts to "they haven't earned it yet", you are applying a different rule than the one above.
+**"Unproven" is not a reason to spend less.** A fan with no purchase history is not a bad bet — they are the one fan on the page you have *no evidence about*, and no evidence they return without us is exactly the condition that justifies a real offer. A club this size grows by winning first purchases. If your objection amounts to "they haven't earned it yet", you are applying a different rule than the one above.
 
 **Read the price line before you talk about margin.** An upgrade costs the club no cash at all — it spends a seat that was probably going unsold. Objecting to an upgrade on the grounds that it burns margin is a factual error, not a judgement. Cash is cash; seats are not.
 
@@ -76,20 +76,20 @@ export function buildReviewerUserPrompt(
   offerId: string,
 ): string {
   const offer = getOffer(offerId);
-  const ceiling = MAX_RANK_BY_RETURN_LIKELIHOOD[read.return_likelihood];
+  const ceiling = MAX_STRENGTH_BY_RETURN_LIKELIHOOD[read.return_likelihood];
   // The whole menu they could have picked, not just the cheaper half — the
   // reviewer has to be able to say "this is too thin" as well as "too much".
   const alternatives = eligibleOffers(cart)
     .filter(
       (o) =>
-        o.concession_rank <= ceiling && o.id !== offerId && affordable(o.cashCost(cart)),
+        o.strength <= ceiling && o.id !== offerId && affordable(o.cashCost(cart)),
     )
     .map((o) => {
       const cash = o.cashCost(cart);
       const seats = o.inventoryCost(cart);
       const price =
         cash > 0 ? `$${cash.toFixed(2)}` : seats > 0 ? `${seats} seats` : "free";
-      const dir = o.concession_rank < (offer?.concession_rank ?? 99) ? "reads smaller" : "reads larger";
+      const dir = o.strength < (offer?.strength ?? 99) ? "reads smaller" : "reads larger";
       const delta = o.cashCost(cart) - (offer ? offer.cashCost(cart) : 0);
       const cashNote =
         Math.abs(delta) < 0.005

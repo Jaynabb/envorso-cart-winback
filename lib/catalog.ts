@@ -40,13 +40,13 @@ export interface CatalogEntry {
   /** Rendered into the strategist's prompt. Says when this is the right tool. */
   description: string;
   /**
-   * How deep a concession this is, 0 = nothing.
+   * How strong an offer this is, 0 = nothing at all.
    *
    * This exists so the monotonicity invariant in policy.ts is checkable
    * arithmetic rather than a judgement call: a fan who is likely to return on
    * their own must not receive a higher rank than one who isn't.
    */
-  concession_rank: number;
+  strength: number;
   /** Cash off the club's top line. A discount costs money; an upgrade doesn't. */
   cashCost(cart: CartFacts): number;
   /**
@@ -77,7 +77,7 @@ export const CATALOG: CatalogEntry[] = [
     label: "No offer",
     description:
       "Send this fan nothing. The right answer whenever they were going to come back without us — an offer there is money spent on a sale we already had, and it teaches a reliable buyer that walking away gets rewarded.",
-    concession_rank: 0,
+    strength: 0,
     cashCost: () => 0,
     inventoryCost: () => 0,
     eligible: alwaysEligible,
@@ -85,10 +85,10 @@ export const CATALOG: CatalogEntry[] = [
   {
     id: "reminder_only",
     kind: "reminder",
-    label: "Reminder, no concession",
+    label: "Reminder, no offer",
     description:
       "A plain nudge that the cart is still there. No money, no perk. For a fan who probably just got interrupted, where the useful thing is the reminder itself rather than a reason to feel clever about waiting.",
-    concession_rank: 1,
+    strength: 1,
     cashCost: () => 0,
     inventoryCost: () => 0,
     eligible: alwaysEligible,
@@ -98,8 +98,8 @@ export const CATALOG: CatalogEntry[] = [
     kind: "fee_waiver",
     label: "Service fees waived",
     description:
-      "Waive the per-seat service fee. The smallest real concession there is — it reads as removing an annoyance rather than cutting the price of a ticket, so it doesn't reset what a fan thinks a seat costs.",
-    concession_rank: 2,
+      "Waive the per-seat service fee. The smallest real offer there is — it reads as removing an annoyance rather than cutting the price of a ticket, so it doesn't reset what a fan thinks a seat costs.",
+    strength: 2,
     cashCost: (c) => SERVICE_FEE_PER_SEAT * c.seats,
     inventoryCost: () => 0,
     eligible: alwaysEligible,
@@ -110,7 +110,7 @@ export const CATALOG: CatalogEntry[] = [
     label: "Free seat upgrade",
     description:
       "Move them up a section at the price they already had in the cart — the fan is told exactly which section, by name. Costs no cash, because it spends a seat that was likely going unsold, and it reads as being looked after rather than marked down. The right tool for winning back a fan who has drifted away.",
-    concession_rank: 3,
+    strength: 3,
     cashCost: () => 0,
     inventoryCost: (c) => c.seats,
     eligible: (c) =>
@@ -124,7 +124,7 @@ export const CATALOG: CatalogEntry[] = [
     label: "10% off the cart",
     description:
       "Real money off. Only where there is genuine doubt the fan returns at all, and the cheaper tools above won't move them.",
-    concession_rank: 4,
+    strength: 4,
     cashCost: (c) => round2(c.cart_value_usd * 0.1),
     inventoryCost: () => 0,
     eligible: alwaysEligible,
@@ -134,8 +134,8 @@ export const CATALOG: CatalogEntry[] = [
     kind: "discount",
     label: "15% off the cart",
     description:
-      "The deepest concession available. Reserved for a fan we have no evidence will ever come back on their own — a first-timer with no history, or someone long lapsed. Never for a regular buyer.",
-    concession_rank: 5,
+      "The deepest offer available. Reserved for a fan we have no evidence will ever come back on their own — a first-timer with no history, or someone long lapsed. Never for a regular buyer.",
+    strength: 5,
     cashCost: (c) => round2(c.cart_value_usd * 0.15),
     inventoryCost: () => 0,
     eligible: alwaysEligible,

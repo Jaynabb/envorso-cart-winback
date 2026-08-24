@@ -5,7 +5,7 @@ import {
   type OfferProposal,
 } from "./schema.ts";
 import { describeOffer, eligibleOffers } from "./catalog.ts";
-import { MAX_RANK_BY_RETURN_LIKELIHOOD, affordable } from "./policy.ts";
+import { MAX_STRENGTH_BY_RETURN_LIKELIHOOD, affordable } from "./policy.ts";
 import { runAgent, type AgentResult } from "./agent.ts";
 
 /**
@@ -17,7 +17,7 @@ import { runAgent, type AgentResult } from "./agent.ts";
  *
  * Unlike the analyst it does see money, and that's deliberate: choosing between
  * a fee waiver and an upgrade is partly an economic call. What the prompt does
- * not let it do is treat a bigger cart as a reason for a bigger concession.
+ * not let it do is treat a bigger cart as a reason for a bigger offer.
  */
 
 export function buildStrategistSystemPrompt(): string {
@@ -25,7 +25,7 @@ export function buildStrategistSystemPrompt(): string {
 
 ## The one rule
 
-**Concession depth is set by how unlikely the fan was to come back on their own. Nothing else.**
+**How strong an offer can be is set by how unlikely the fan was to come back on their own. Nothing else.**
 
 Not the size of the cart. Not how loyal they are. A cart that would have been finished anyway is a sale the club already had — paying for it is money burned, and doing it repeatedly teaches reliable fans that walking away gets rewarded. A large cart from a regular buyer is the *least* deserving of a discount in this whole system, not the most.
 
@@ -37,13 +37,13 @@ Worked example — a fan read as loyal with a high chance of returning unaided, 
 
 ## Choosing, when something is warranted
 
-Restraint is the default, not the goal. Take the cheapest tool that could plausibly work — and notice the words "could plausibly work", because a concession too thin to move anyone is its own kind of failure. It burns the one message this fan will read and gives them nothing to act on.
+Restraint is the default, not the goal. Take the cheapest tool that could plausibly work — and notice the words "could plausibly work", because an offer too thin to move anyone is its own kind of failure. It burns the one message this fan will read and gives them nothing to act on.
 
 Worked example — a fan read as lapsed with a low chance of returning unaided: a bare reminder is not a serious answer. They have already shown you a year of not coming back; being reminded is not new information. If the read says they won't return on their own, give them an actual reason to.
 
-The same goes for "unknown". A first-time buyer with no history is not a safe bet you should spend little on — they are the one fan on the page you have *no* evidence about, and the definition above says to treat that as low. Winning a first purchase is how a club with a small fan base grows, so this is where a real concession is most defensible, not least.
+The same goes for "unknown". A first-time buyer with no history is not a safe bet you should spend little on — they are the one fan on the page you have *no* evidence about, and the definition above says to treat that as low. Winning a first purchase is how a club with a small fan base grows, so this is where a real offer is most defensible, not least.
 
-Prefer spending inventory over spending cash. An upgrade into a seat that was going unsold costs the club close to nothing at the till and reads as being looked after rather than being marked down. But inventory scales badly with party size — gifting two better seats is cheap, gifting six of the best ones is not, so for larger parties a bounded cash concession is often the more prudent bet.
+Prefer spending inventory over spending cash. An upgrade into a seat that was going unsold costs the club close to nothing at the till and reads as being looked after rather than being marked down. But inventory scales badly with party size — gifting two better seats is cheap, gifting six of the best ones is not, so for larger parties a bounded cash discount is often the more prudent bet.
 
 ## Your reason
 
@@ -55,9 +55,9 @@ Call the propose_offer tool exactly once.`;
 }
 
 export function buildStrategistUserPrompt(cart: CartFacts, read: FanRead): string {
-  const ceiling = MAX_RANK_BY_RETURN_LIKELIHOOD[read.return_likelihood];
+  const ceiling = MAX_STRENGTH_BY_RETURN_LIKELIHOOD[read.return_likelihood];
   const menu = eligibleOffers(cart)
-    .filter((o) => o.concession_rank <= ceiling && affordable(o.cashCost(cart)))
+    .filter((o) => o.strength <= ceiling && affordable(o.cashCost(cart)))
     .map((o) => {
       const cash = o.cashCost(cart);
       const seats = o.inventoryCost(cart);

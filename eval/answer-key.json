@@ -1,9 +1,9 @@
 {
   "_note": "Written by hand before any model was run against this data. The point of the ordering is that our judgement is the benchmark and the agent is scored against it — not the reverse. `acceptable_offer_ids` is a band rather than one id because more than one offer can be defensible; `preferred_offer_id` is the call we'd make ourselves.",
   "_principles": [
-    "Concession depth tracks how unlikely the fan was to return unaided. Never cart value, never loyalty.",
+    "Offer strength tracks how unlikely the fan was to return unaided. Never cart value, never loyalty.",
     "Prefer the cheapest tool that could plausibly work, and prefer inventory over cash — an unsold seat costs the club close to nothing at the till.",
-    "But inventory offers scale badly with party size. Two seats is a cheap gift; four of the better seats is the club's scarcest stock, so a bounded cash concession is the more prudent bet on a fan with no history."
+    "But inventory offers scale badly with party size. Two seats is a cheap gift; four of the better seats is the club's scarcest stock, so a bounded cash discount is the more prudent bet on a fan with no history."
   ],
   "carts": {
     "C-1001": {
@@ -18,7 +18,7 @@
       "expected_return_likelihood": ["unknown", "low"],
       "preferred_offer_id": "discount_15",
       "acceptable_offer_ids": ["discount_15", "discount_10", "upgrade_one_tier"],
-      "why": "Never purchased, so there is genuinely no history saying he comes back — the one cart in the set where a real concession is honest rather than lazy. Four seats of a brand new fan is the highest acquisition value here. Cash rather than an upgrade because four Lower Bowl seats is the club's scarcest inventory to gift to someone with no track record."
+      "why": "Never purchased, so there is genuinely no history saying he comes back — the one cart in the set where a real offer is honest rather than lazy. Four seats of a brand new fan is the highest acquisition value here. Cash rather than an upgrade because four Lower Bowl seats is the club's scarcest inventory to gift to someone with no track record."
     },
     "C-1003": {
       "expected_outcome": "blocked",
@@ -39,7 +39,7 @@
       "expected_return_likelihood": ["low"],
       "preferred_offer_id": "upgrade_one_tier",
       "acceptable_offer_ids": ["upgrade_one_tier", "discount_15", "discount_10", "fee_waiver"],
-      "why": "One ticket, 300 days ago, cart cold for four days. This relationship is already gone, so the unaided return chance is close to zero and a real concession is justified. An upgrade rather than money: it costs the club no cash, two Upper Deck fans moving to Lower Bowl is a cheap gift, and it reads as being looked after instead of being marked down."
+      "why": "One ticket, 300 days ago, cart cold for four days. This relationship is already gone, so the unaided return chance is close to zero and a real offer is justified. An upgrade rather than money: it costs the club no cash, two Upper Deck fans moving to Lower Bowl is a cheap gift, and it reads as being looked after instead of being marked down."
     }
   }
 }

@@ -110,7 +110,7 @@ export type Verdict = (typeof VERDICTS)[number];
  * uses up the one message this fan will read and gives them no reason to act.
  */
 export const VERDICT_DEFINITIONS: Record<Verdict, string> = {
-  approve: "The concession fits the read. Send it to the marketer as proposed.",
+  approve: "The offer fits the read. Send it to the marketer as proposed.",
   adjust:
     "The right move is a different offer — smaller if this spends money on someone who was coming back anyway, larger if it's too thin to move a fan who has no reason to return. Name the replacement.",
   veto:
