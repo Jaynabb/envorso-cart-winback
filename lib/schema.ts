@@ -40,9 +40,9 @@ export type Segment = (typeof SEGMENTS)[number];
 
 export const SEGMENT_DEFINITIONS: Record<Segment, string> = {
   first_timer: "Has never completed a purchase. No history to predict anything from.",
-  occasional: "Has bought before, a handful of times, and recently enough to still be engaged.",
-  loyal: "Buys regularly and bought recently. The club's core.",
-  lapsed: "Has bought before but not for a long time. The relationship has gone quiet.",
+  occasional: "Has bought a handful of times AND bought within roughly the last six months. Still engaged, just not a regular.",
+  loyal: "Buys regularly — ten or more tickets — and bought recently. The club's core.",
+  lapsed: "Has bought before but not for roughly six months or more. Recency decides this, not how many they bought: one ticket 300 days ago is lapsed, not occasional.",
 };
 
 /**
@@ -95,20 +95,33 @@ export type OfferProposal = z.infer<typeof OfferProposalSchema>;
 
 /* ---------- stage 3: the reviewer's verdict ------------------------- */
 
-export const VERDICTS = ["approve", "downgrade", "veto"] as const;
+export const VERDICTS = ["approve", "adjust", "veto"] as const;
 export type Verdict = (typeof VERDICTS)[number];
 
+/**
+ * `adjust` goes both ways on purpose.
+ *
+ * The first version of this had "downgrade", which quietly assumed the only way
+ * an offer can be wrong is being too generous. The reviewer found the other
+ * kind on its first run — a reminder sent to a fan who has been gone 300 days,
+ * which it called "splitting the difference and creating contact noise" — and
+ * had nowhere to put that judgement, so a correct read came out as a hold.
+ * Under-spending is quieter than over-spending and it is still a failure: it
+ * uses up the one message this fan will read and gives them no reason to act.
+ */
 export const VERDICT_DEFINITIONS: Record<Verdict, string> = {
-  approve: "The concession is justified by the read. Send it to the marketer as proposed.",
-  downgrade: "Something should go to this fan, but not this much. Name the cheaper offer instead.",
-  veto: "Nothing should go to this fan right now. Say what the proposal got wrong.",
+  approve: "The concession fits the read. Send it to the marketer as proposed.",
+  adjust:
+    "The right move is a different offer — smaller if this spends money on someone who was coming back anyway, larger if it's too thin to move a fan who has no reason to return. Name the replacement.",
+  veto:
+    "Silence is the right answer — this fan should get no message at all today. Not for use when a DIFFERENT offer would be right; that is an adjust.",
 };
 
 export const ReviewSchema = z.object({
   verdict: z.enum(VERDICTS),
   /** Written for the marketer, not for a log. Says what the reviewer saw. */
   objection: z.string().min(1).max(400),
-  /** Required when downgrading — the catalog id to use instead. */
+  /** Required when adjusting — the catalog id to use instead. */
   replacement_offer_id: z.string().nullable(),
 });
 export type Review = z.infer<typeof ReviewSchema>;

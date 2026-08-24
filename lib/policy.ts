@@ -181,10 +181,22 @@ export function checkInvariants(cart: CartFacts, decision: Decision): string[] {
   }
 
   // The model asserting a number we can compute ourselves.
-  if (decision.proposal && Math.abs(decision.proposal.claimed_cost_usd - cash) > 0.01) {
-    problems.push(
-      `COST: the strategist claimed $${decision.proposal.claimed_cost_usd.toFixed(2)}; this offer actually costs $${cash.toFixed(2)}.`,
-    );
+  //
+  // Checked against the offer the strategist actually proposed, not against
+  // whatever survived review. The first version compared the claim to the final
+  // offer and fired every time the reviewer adjusted to something else — a
+  // false alarm on a healthy run, which is the fastest way to teach someone to
+  // ignore the alarms.
+  if (decision.proposal) {
+    const proposed = getOffer(decision.proposal.offer_id);
+    if (proposed) {
+      const proposedCash = proposed.cashCost(cart);
+      if (Math.abs(decision.proposal.claimed_cost_usd - proposedCash) > 0.01) {
+        problems.push(
+          `COST: the strategist claimed ${decision.proposal.offer_id} costs $${decision.proposal.claimed_cost_usd.toFixed(2)}; it actually costs $${proposedCash.toFixed(2)}.`,
+        );
+      }
+    }
   }
 
   return problems;
