@@ -595,35 +595,3 @@ main {
   .spend { margin-left: 0; width: 100%; }
 }
 
-/* ---------- the budget -------------------------------------- */
-/* Fills as approvals happen. The run warning says the day is over cap; this
-   is what lets a marketer act on it while deciding rather than afterwards. */
-
-.budget {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin: -6px 0 22px;
-}
-.budget-track {
-  flex: 1 1 auto;
-  height: 3px;
-  background: var(--rule);
-  border-radius: 2px;
-  overflow: hidden;
-}
-.budget-fill {
-  height: 100%;
-  background: var(--green);
-  transition: width 0.2s ease;
-}
-.budget-fill.is-over { background: var(--alert); }
-.budget-label {
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--ink-3);
-  white-space: nowrap;
-}
-.spend .over { color: var(--alert); }

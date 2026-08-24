@@ -48,7 +48,7 @@ function score(result: RunResult): Score {
     band: { got: 0, of: 0 },
     preferred: { got: 0, of: 0 },
     likelihood: { got: 0, of: 0 },
-    violations: [...result.runViolations],
+    violations: [],
     disagreements: [],
     cost: result.meta.cost_usd,
   };

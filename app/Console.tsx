@@ -51,8 +51,6 @@ type Standing = { status: "approved" | "rejected" | null; offerId: string | null
 export default function Console() {
   const [items, setItems] = useState<Item[] | null>(null);
   const [meta, setMeta] = useState<Meta | null>(null);
-  const [runViolations, setRunViolations] = useState<string[]>([]);
-  const [cap, setCap] = useState<number | null>(null);
   const [running, setRunning] = useState(false);
   const [fatal, setFatal] = useState<string | null>(null);
   const [ranAt, setRanAt] = useState<string | null>(null);
@@ -73,8 +71,6 @@ export default function Console() {
       }
       setItems(body.items);
       setMeta(body.meta);
-      setRunViolations(body.runViolations ?? []);
-      setCap(body.policy?.daily_budget_usd ?? null);
       setStanding({});
       setRanAt(
         new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }),
@@ -133,12 +129,9 @@ export default function Console() {
   }, [items]);
 
   /**
-   * What the marketer has actually committed so far.
-   *
-   * The run-level cap warning says the day is over budget; this is the number
-   * that lets someone act on it. Counted from approvals rather than proposals,
-   * and from whatever offer is currently selected, so swapping to a cheaper one
-   * moves it immediately.
+   * What the marketer has committed so far. Information, not a control —
+   * counted from approvals rather than proposals, and from whatever offer is
+   * currently selected, so swapping to a cheaper one moves it immediately.
    */
   const approvedCost = useMemo(() => {
     if (!items) return 0;
@@ -152,12 +145,11 @@ export default function Console() {
   }, [items, standing]);
 
   const approvedCount = Object.values(standing).filter((s) => s.status === "approved").length;
-  const overCap = cap !== null && approvedCost > cap;
 
   const cardViolations = items?.flatMap((i) =>
     i.decision.violations.map((v) => `${i.cart.cart_id}: ${v}`),
   ) ?? [];
-  const allViolations = [...runViolations, ...cardViolations];
+  const allViolations = cardViolations;
 
   return (
     <>
@@ -195,33 +187,12 @@ export default function Console() {
               </>
             ) : (
               <>
-                approved <b>{approvedCount}</b> ·{" "}
-                <b className={overCap ? "over" : undefined}>${approvedCost.toFixed(2)}</b>
-                {cap !== null && <> of ${cap.toFixed(2)} today</>}
+                approved <b>{approvedCount}</b> · <b>${approvedCost.toFixed(2)}</b> committed
               </>
             )}
           </span>
         )}
       </div>
-
-      {/* A budget you can watch fill up as you approve. The run-level warning
-          tells you the day is over cap; this is what lets you do something
-          about it while you're deciding rather than afterwards. */}
-      {meta && cap !== null && approvedCount > 0 && (
-        <div className="budget">
-          <div className="budget-track">
-            <div
-              className={`budget-fill${overCap ? " is-over" : ""}`}
-              style={{ width: `${Math.min(100, (approvedCost / cap) * 100)}%` }}
-            />
-          </div>
-          <span className="budget-label">
-            {overCap
-              ? `$${(approvedCost - cap).toFixed(2)} over the day’s budget`
-              : `$${(cap - approvedCost).toFixed(2)} left in today’s budget`}
-          </span>
-        </div>
-      )}
 
       {fatal && <div className="fatal">{fatal}</div>}
 

@@ -72,10 +72,7 @@ console.log(
 );
 console.log("─".repeat(72));
 
-const allViolations = [
-  ...result.runViolations,
-  ...result.decisions.flatMap((d) => d.violations),
-];
+const allViolations = result.decisions.flatMap((d) => d.violations);
 if (allViolations.length) {
   console.log("\nINVARIANT VIOLATIONS — do not send this run:\n");
   for (const v of allViolations) console.log(`  !! ${v}`);

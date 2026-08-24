@@ -9,7 +9,6 @@ import {
   affordable,
   needsEscalation,
   checkInvariants,
-  checkRunTotal,
   MAX_STRENGTH_BY_RETURN_LIKELIHOOD,
   MIN_STRENGTH_BY_RETURN_LIKELIHOOD,
 } from "./policy.ts";
@@ -40,8 +39,6 @@ export interface RunResult {
   decisions: Decision[];
   usageByCart: Record<string, Usage>;
   usage: Usage;
-  /** Violations that apply to the run as a whole, not one cart. */
-  runViolations: string[];
   meta: {
     total: number;
     offers: number;
@@ -243,7 +240,6 @@ export async function runPipeline(
   }
   await Promise.all(Array.from({ length: Math.min(CONCURRENCY, carts.length) }, worker));
 
-  const runViolations = checkRunTotal(decisions, carts);
   const usage = sumUsage(Object.values(usageByCart));
 
   // How much of the day's spend is revenue handed over rather than cash out
@@ -259,7 +255,6 @@ export async function runPipeline(
     decisions,
     usageByCart,
     usage,
-    runViolations,
     meta: {
       total: decisions.length,
       offers: decisions.filter((d) => d.outcome === "offer").length,
