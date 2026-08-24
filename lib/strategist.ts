@@ -4,7 +4,7 @@ import {
   type FanRead,
   type OfferProposal,
 } from "./schema.ts";
-import { describeOffer, eligibleOffers } from "./catalog.ts";
+import { describeOffer, eligibleOffers, totalCost } from "./catalog.ts";
 import { MAX_STRENGTH_BY_RETURN_LIKELIHOOD, affordable } from "./policy.ts";
 import { runAgent, type AgentResult } from "./agent.ts";
 
@@ -23,6 +23,10 @@ import { runAgent, type AgentResult } from "./agent.ts";
 export function buildStrategistSystemPrompt(): string {
   return `You decide what the Seattle Seawolves should offer a fan who left tickets in their cart. A marketer reviews every one of your proposals before a fan sees it, so your job is to be right rather than persuasive.
 
+## What these cost
+
+Every price below is money the club does not get, and they are directly comparable. A discount is margin off the top. An upgrade takes no cash at the till, but it hands over a seat someone else would probably have bought and only gives back the cheaper one it frees — the figure shown is that difference. A seat is worthless the moment the match starts, so revenue given away on one is as gone as a dollar discounted.
+
 ## The one rule
 
 **How strong an offer can be is set by how unlikely the fan was to come back on their own. Nothing else.**
@@ -37,7 +41,9 @@ Worked example — a fan read as loyal with a high chance of returning unaided, 
 
 ## Choosing, when something is warranted
 
-Restraint is the default, not the goal. Take the cheapest tool that could plausibly work — and notice the words "could plausibly work", because an offer too thin to move anyone is its own kind of failure. It burns the one message this fan will read and gives them nothing to act on.
+Restraint is the default, not the goal. Take the **weakest** offer that could plausibly work — and notice the words "could plausibly work", because an offer too thin to move anyone is its own kind of failure. It burns the one message this fan will read and gives them nothing to act on.
+
+**Weakest and cheapest are two different things, and both matter.** Strength is what an offer teaches the fan about what a ticket is worth — money off resets that, waiving a fee doesn't. Cost is the dollar figure next to it. They do not move together: waiving fees on four seats costs more than fifteen percent off the same cart. So among the options that would all plausibly work, take the weakest one — and where two are equally plausible, take the one that costs less. Never pay more for a weaker offer without saying why it's worth it.
 
 Worked example — a fan read as lapsed with a low chance of returning unaided: a bare reminder is not a serious answer. They have already shown you a year of not coming back; being reminded is not new information. If the read says they won't return on their own, give them an actual reason to.
 
@@ -59,14 +65,12 @@ export function buildStrategistUserPrompt(cart: CartFacts, read: FanRead): strin
   const menu = eligibleOffers(cart)
     .filter((o) => o.strength <= ceiling && affordable(o.cashCost(cart)))
     .map((o) => {
-      const cash = o.cashCost(cart);
-      const seats = o.inventoryCost(cart);
-      const price =
-        cash > 0
-          ? `costs $${cash.toFixed(2)} cash`
-          : seats > 0
-            ? `costs no cash, gives away ${seats} seat${seats === 1 ? "" : "s"} of better inventory`
-            : "costs nothing";
+      // One number, stated flatly. An earlier version said "no cash, but..."
+      // next to the figure for an upgrade, and the reviewer read the words and
+      // ignored the number — it approved a $38 upgrade on the grounds that it
+      // "costs no cash". Every figure here is the same kind of money.
+      const cost = totalCost(o, cart);
+      const price = cost === 0 ? "costs nothing" : `costs $${cost.toFixed(2)}`;
       // Named the way the FAN will see it, not with the generic catalog label.
       // The reviewer once turned down an upgrade for being "invisible — they
       // won't know what one section better means", which was true of our label

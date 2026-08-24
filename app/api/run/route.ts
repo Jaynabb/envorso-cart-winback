@@ -2,9 +2,9 @@ import { NextResponse } from "next/server";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { runPipeline } from "../../../lib/pipeline.ts";
-import { CATALOG, describeOffer } from "../../../lib/catalog.ts";
+import { CATALOG, describeOffer, totalCost } from "../../../lib/catalog.ts";
 import { buildCopy } from "../../../lib/copy.ts";
-import { DAILY_CASH_CAP } from "../../../lib/policy.ts";
+import { DAILY_COST_CAP } from "../../../lib/policy.ts";
 import type { CartFacts } from "../../../lib/schema.ts";
 
 /**
@@ -49,8 +49,8 @@ export async function POST(request: Request) {
           id: o.id,
           label: o.label,
           kind: o.kind,
-          cash: o.cashCost(cart),
-          seats: o.inventoryCost(cart),
+          cost: totalCost(o, cart),
+          givenAway: o.opportunityCost(cart),
           // The same phrasing the agent's own headline uses, so a card can
           // describe whatever the marketer swapped to instead of stubbornly
           // showing what the agent proposed.
@@ -63,7 +63,7 @@ export async function POST(request: Request) {
       items: enriched,
       meta: result.meta,
       runViolations: result.runViolations,
-      policy: { daily_cash_cap: DAILY_CASH_CAP },
+      policy: { daily_cost_cap: DAILY_COST_CAP },
     });
   } catch (err) {
     // Something structural — the cart file is missing or unreadable. Return a

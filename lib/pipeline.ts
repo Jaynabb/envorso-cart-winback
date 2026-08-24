@@ -3,7 +3,7 @@ import {
   type Decision,
   CartFactsSchema,
 } from "./schema.ts";
-import { getOffer, describeOffer } from "./catalog.ts";
+import { getOffer, describeOffer, totalCost } from "./catalog.ts";
 import {
   gate,
   affordable,
@@ -47,10 +47,10 @@ export interface RunResult {
     offers: number;
     holds: number;
     blocked: number;
-    /** Cash the club would spend if a marketer approved everything proposed. */
-    proposed_cash_usd: number;
-    /** Seats of better inventory the same approvals would consume. */
-    proposed_inventory_seats: number;
+    /** What the club gives up if a marketer approves everything proposed. */
+    proposed_cost_usd: number;
+    /** How much of that is revenue handed over rather than cash off the top. */
+    proposed_given_away_usd: number;
     elapsed_ms: number;
     cost_usd: number;
   };
@@ -130,7 +130,7 @@ async function decideOne(
   }
 
   const proposed = getOffer(proposal.offer_id);
-  if (!proposed || !proposed.eligible(cart).ok || !affordable(proposed.cashCost(cart))) {
+  if (!proposed || !proposed.eligible(cart).ok || !affordable(totalCost(proposed, cart))) {
     return {
       usage: sumUsage([readResult.usage, proposalResult.usage]),
       decision: hold(
@@ -142,7 +142,7 @@ async function decideOne(
   }
 
   // [3] Reviewer — independent, and paid for properly when cash is at stake.
-  const escalate = needsEscalation(proposed.cashCost(cart), proposed.strength);
+  const escalate = needsEscalation(totalCost(proposed, cart), proposed.strength);
   const reviewResult = await reviewOffer(cart, read, proposal.offer_id, escalate);
   if (!reviewResult.ok) {
     return {
@@ -180,7 +180,7 @@ async function decideOne(
     const strength = replacement?.strength ?? -1;
     const valid =
       replacement &&
-      affordable(replacement.cashCost(cart)) &&
+      affordable(totalCost(replacement, cart)) &&
       strength <= MAX_STRENGTH_BY_RETURN_LIKELIHOOD[read.return_likelihood] &&
       (strength >= MIN_STRENGTH_BY_RETURN_LIKELIHOOD[read.return_likelihood] ||
         replacement.id === "no_offer") &&
@@ -209,7 +209,7 @@ async function decideOne(
     headline: describeOffer(finalId, cart),
     offer_id: finalId,
     // Computed, never taken from the model.
-    cost_usd: finalOffer.cashCost(cart),
+    cost_usd: totalCost(finalOffer, cart),
     read,
     proposal,
     review,
@@ -246,10 +246,13 @@ export async function runPipeline(
   const runViolations = checkRunTotal(decisions);
   const usage = sumUsage(Object.values(usageByCart));
 
-  const inventory = decisions.reduce((n, d) => {
+  // How much of the day's spend is revenue handed over rather than cash out
+  // the door. Same money either way, but a marketer reading the number should
+  // know which kind it is.
+  const givenAway = decisions.reduce((n, d) => {
     if (d.outcome !== "offer" || !d.offer_id) return n;
     const cart = carts.find((c) => c.cart_id === d.cart_id)!;
-    return n + (getOffer(d.offer_id)?.inventoryCost(cart) ?? 0);
+    return n + (getOffer(d.offer_id)?.opportunityCost(cart) ?? 0);
   }, 0);
 
   return {
@@ -262,10 +265,10 @@ export async function runPipeline(
       offers: decisions.filter((d) => d.outcome === "offer").length,
       holds: decisions.filter((d) => d.outcome === "hold").length,
       blocked: decisions.filter((d) => d.outcome === "blocked").length,
-      proposed_cash_usd: Math.round(
+      proposed_cost_usd: Math.round(
         decisions.reduce((n, d) => n + (d.cost_usd ?? 0), 0) * 100,
       ) / 100,
-      proposed_inventory_seats: inventory,
+      proposed_given_away_usd: Math.round(givenAway * 100) / 100,
       elapsed_ms: Date.now() - started,
       cost_usd: usage.cost_usd,
     },

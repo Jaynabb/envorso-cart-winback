@@ -2,8 +2,8 @@
   "_note": "Written by hand before any model was run against this data. The point of the ordering is that our judgement is the benchmark and the agent is scored against it — not the reverse. `acceptable_offer_ids` is a band rather than one id because more than one offer can be defensible; `preferred_offer_id` is the call we'd make ourselves.",
   "_principles": [
     "Offer strength tracks how unlikely the fan was to return unaided. Never cart value, never loyalty.",
-    "Prefer the cheapest tool that could plausibly work, and prefer inventory over cash — an unsold seat costs the club close to nothing at the till.",
-    "But inventory offers scale badly with party size. Two seats is a cheap gift; four of the better seats is the club's scarcest stock, so a bounded cash discount is the more prudent bet on a fan with no history."
+    "Take the cheapest tool that could plausibly work — and price every tool honestly. A free upgrade is not free: it hands over a seat someone else would likely have bought and only gives back the cheaper seat it frees. On the fill rates in lib/catalog.ts that is roughly $19 a seat, which makes upgrades the expensive option rather than the thrifty one.",
+    "A discount costs its full face value in margin, because a ticket is perishable and the marginal cost of one more person in a seat is close to nothing."
   ],
   "carts": {
     "C-1001": {
@@ -18,7 +18,7 @@
       "expected_return_likelihood": ["unknown", "low"],
       "preferred_offer_id": "discount_15",
       "acceptable_offer_ids": ["discount_15", "discount_10", "upgrade_one_tier"],
-      "why": "Never purchased, so there is genuinely no history saying he comes back — the one cart in the set where a real offer is honest rather than lazy. Four seats of a brand new fan is the highest acquisition value here. Cash rather than an upgrade because four Lower Bowl seats is the club's scarcest inventory to gift to someone with no track record."
+      "why": "Never purchased, so there is genuinely no history saying he comes back — the one cart in the set where a real offer is honest rather than lazy. Four seats of a brand new fan is the highest acquisition value here, and 15% of $140 is $21. An upgrade for four would give up roughly $77 of expected ticket revenue, so the deepest discount we sell is still the cheaper way to win him."
     },
     "C-1003": {
       "expected_outcome": "blocked",
@@ -37,9 +37,9 @@
     "C-1005": {
       "expected_outcome": "offer",
       "expected_return_likelihood": ["low"],
-      "preferred_offer_id": "upgrade_one_tier",
-      "acceptable_offer_ids": ["upgrade_one_tier", "discount_15", "discount_10", "fee_waiver"],
-      "why": "One ticket, 300 days ago, cart cold for four days. This relationship is already gone, so the unaided return chance is close to zero and a real offer is justified. An upgrade rather than money: it costs the club no cash, two Upper Deck fans moving to Lower Bowl is a cheap gift, and it reads as being looked after instead of being marked down."
+      "preferred_offer_id": "discount_10",
+      "acceptable_offer_ids": ["discount_10", "discount_15", "fee_waiver", "upgrade_one_tier"],
+      "why": "One ticket, 300 days ago, cart cold for four days. The relationship is already gone, so the unaided return chance is near zero and a real offer is justified. A 10% discount costs $7. The upgrade is the tempting answer because it costs no cash — but moving two seats from Upper Deck to Lower Bowl gives up about $38 of expected ticket revenue, five times the discount. Cheapest tool that plausibly works means the money, not the seats."
     }
   }
 }

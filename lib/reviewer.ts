@@ -5,7 +5,7 @@ import {
   type FanRead,
   type Review,
 } from "./schema.ts";
-import { describeOffer, eligibleOffers, getOffer } from "./catalog.ts";
+import { describeOffer, eligibleOffers, getOffer, totalCost } from "./catalog.ts";
 import {
   LOYAL_RECENCY_DAYS,
   LOYAL_TICKETS,
@@ -35,13 +35,17 @@ You are shown what the analyst found about the fan, and the offer someone propos
 
 An offer can be wrong in two directions and you are responsible for both. Too generous spends money on a fan who was coming back anyway. Too thin burns the one message this fan will read and gives them no reason to act — a bare reminder to someone who has been gone a year is not caution, it is a wasted touch.
 
+## What these cost
+
+Every figure you are shown is money the club does not get, and they compare directly. A discount is margin off the top. An upgrade costs nothing at the till but hands over a seat someone else would probably have bought, and the figure shown is that expected revenue net of the cheaper seat it frees. "No cash" is not the same as "no cost" — a seat is worthless the moment the match starts, so giving one away is as real as discounting.
+
 ## The rule you are enforcing
 
 How strong an offer can be tracks one thing: how unlikely the fan was to come back on their own. Not the size of the cart, not how loyal they are.
 
 So the questions are:
 - If we sent this fan nothing at all, would they have finished the cart anyway? If probably yes, then anything with a cost attached is money burned, and the verdict is veto.
-- Is this the cheapest tool that plausibly works? If something smaller would do, adjust to it and name it.
+- Is this the weakest tool that plausibly works? If something smaller would do, adjust to it and name it. Weak and cheap are different axes — strength is what it teaches the fan, cost is the dollars — so check you aren't recommending something weaker that costs more. Waiving fees on a large party costs more than a deep discount on the same cart.
 - Is it enough to work at all? If the fan has no reason to return and the proposal is a nudge with nothing behind it, adjust upward and name what should go instead.
 - Does this insult anyone? A fan with ${LOYAL_TICKETS}+ tickets who bought inside ${LOYAL_RECENCY_DAYS} days is the club's core. Marking their tickets down is both wasted margin and a strange message to send someone who already shows up.
 
@@ -85,30 +89,21 @@ export function buildReviewerUserPrompt(
         o.strength <= ceiling && o.id !== offerId && affordable(o.cashCost(cart)),
     )
     .map((o) => {
-      const cash = o.cashCost(cart);
-      const seats = o.inventoryCost(cart);
-      const price =
-        cash > 0 ? `$${cash.toFixed(2)}` : seats > 0 ? `${seats} seats` : "free";
+      const price = `$${totalCost(o, cart).toFixed(2)}`;
       const dir = o.strength < (offer?.strength ?? 99) ? "reads smaller" : "reads larger";
-      const delta = o.cashCost(cart) - (offer ? offer.cashCost(cart) : 0);
+      const delta = totalCost(o, cart) - (offer ? totalCost(offer, cart) : 0);
       const cashNote =
         Math.abs(delta) < 0.005
-          ? "same cash"
+          ? "same cost"
           : delta > 0
-            ? `costs $${delta.toFixed(2)} MORE cash`
-            : `costs $${Math.abs(delta).toFixed(2)} less cash`;
+            ? `costs $${delta.toFixed(2)} MORE`
+            : `costs $${Math.abs(delta).toFixed(2)} less`;
       return `  - ${o.id} — ${describeOffer(o.id, cart)} (${price}; ${dir}, ${cashNote})`;
     })
     .join("\n");
 
-  const cash = offer ? offer.cashCost(cart) : 0;
-  const seats = offer ? offer.inventoryCost(cart) : 0;
-  const price =
-    cash > 0
-      ? `$${cash.toFixed(2)} in cash`
-      : seats > 0
-        ? `no cash, but ${seats} seat${seats === 1 ? "" : "s"} of better inventory given away`
-        : "nothing";
+  const cost = offer ? totalCost(offer, cart) : 0;
+  const price = cost === 0 ? "nothing" : `$${cost.toFixed(2)}`;
 
   const flags = read.risk_flags.length
     ? read.risk_flags.map((f) => `  - ${f}`).join("\n")

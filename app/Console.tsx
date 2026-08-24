@@ -22,8 +22,8 @@ interface Option {
   id: string;
   label: string;
   kind: string;
-  cash: number;
-  seats: number;
+  cost: number;
+  givenAway: number;
   describe: string;
 }
 
@@ -39,8 +39,8 @@ interface Meta {
   offers: number;
   holds: number;
   blocked: number;
-  proposed_cash_usd: number;
-  proposed_inventory_seats: number;
+  proposed_cost_usd: number;
+  proposed_given_away_usd: number;
   elapsed_ms: number;
   cost_usd: number;
 }
@@ -74,7 +74,7 @@ export default function Console() {
       setItems(body.items);
       setMeta(body.meta);
       setRunViolations(body.runViolations ?? []);
-      setCap(body.policy?.daily_cash_cap ?? null);
+      setCap(body.policy?.daily_cost_cap ?? null);
       setStanding({});
       setRanAt(
         new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }),
@@ -140,19 +140,19 @@ export default function Console() {
    * and from whatever offer is currently selected, so swapping to a cheaper one
    * moves it immediately.
    */
-  const approvedCash = useMemo(() => {
+  const approvedCost = useMemo(() => {
     if (!items) return 0;
     return items.reduce((sum, i) => {
       const st = standing[i.cart.cart_id];
       if (st?.status !== "approved") return sum;
       const id = st.offerId ?? i.decision.offer_id;
       const opt = i.options.find((o) => o.id === id);
-      return sum + (opt?.cash ?? 0);
+      return sum + (opt?.cost ?? 0);
     }, 0);
   }, [items, standing]);
 
   const approvedCount = Object.values(standing).filter((s) => s.status === "approved").length;
-  const overCap = cap !== null && approvedCash > cap;
+  const overCap = cap !== null && approvedCost > cap;
 
   const cardViolations = items?.flatMap((i) =>
     i.decision.violations.map((v) => `${i.cart.cart_id}: ${v}`),
@@ -185,18 +185,18 @@ export default function Console() {
           <span className="spend">
             {approvedCount === 0 ? (
               <>
-                if you approve everything: <b>${meta.proposed_cash_usd.toFixed(2)}</b> cash
-                {meta.proposed_inventory_seats > 0 && (
+                if you approve everything: <b>${meta.proposed_cost_usd.toFixed(2)}</b>
+                {meta.proposed_given_away_usd > 0 && (
                   <>
                     {" "}
-                    + <b>{meta.proposed_inventory_seats}</b> seats
+                    (<b>${meta.proposed_given_away_usd.toFixed(2)}</b> of it seats, not cash)
                   </>
                 )}
               </>
             ) : (
               <>
                 approved <b>{approvedCount}</b> ·{" "}
-                <b className={overCap ? "over" : undefined}>${approvedCash.toFixed(2)}</b>
+                <b className={overCap ? "over" : undefined}>${approvedCost.toFixed(2)}</b>
                 {cap !== null && <> of ${cap} today</>}
               </>
             )}
@@ -212,13 +212,13 @@ export default function Console() {
           <div className="budget-track">
             <div
               className={`budget-fill${overCap ? " is-over" : ""}`}
-              style={{ width: `${Math.min(100, (approvedCash / cap) * 100)}%` }}
+              style={{ width: `${Math.min(100, (approvedCost / cap) * 100)}%` }}
             />
           </div>
           <span className="budget-label">
             {overCap
-              ? `$${(approvedCash - cap).toFixed(2)} over the daily cap`
-              : `$${(cap - approvedCash).toFixed(2)} left today`}
+              ? `$${(approvedCost - cap).toFixed(2)} over the daily cap`
+              : `$${(cap - approvedCost).toFixed(2)} left today`}
           </span>
         </div>
       )}
@@ -423,12 +423,14 @@ function Card({
   const laneClass =
     d.outcome === "offer" ? "lane" : d.outcome === "hold" ? "lane lane-hold" : "lane lane-blocked";
 
+  // One number, whichever kind of giving-away it is. The split is named in
+  // the tooltip rather than shown as two figures the reader has to add up.
   const price = chosen
-    ? chosen.cash > 0
-      ? `$${chosen.cash.toFixed(2)} cash`
-      : chosen.seats > 0
-        ? `${chosen.seats} seat${chosen.seats === 1 ? "" : "s"} of inventory`
-        : "costs nothing"
+    ? chosen.cost === 0
+      ? "costs nothing"
+      : chosen.givenAway > 0 && chosen.cost === chosen.givenAway
+        ? `$${chosen.cost.toFixed(2)} in seats`
+        : `$${chosen.cost.toFixed(2)}`
     : null;
 
   return (
@@ -460,7 +462,7 @@ function Card({
             {isOffer ? (chosen?.describe ?? d.headline) : "No offer today"}
           </span>
           {isOffer && price && (
-            <span className={`price${chosen && chosen.cash === 0 ? " price-free" : ""}`}>
+            <span className={`price${chosen && chosen.cost === 0 ? " price-free" : ""}`}>
               {price}
             </span>
           )}
@@ -535,7 +537,7 @@ function Card({
                   onClick={() => onPick(o.id)}
                 >
                   {o.label} ·{" "}
-                  {o.cash > 0 ? `$${o.cash.toFixed(2)}` : o.seats > 0 ? `${o.seats} seats` : "free"}
+                  {o.cost === 0 ? "free" : `$${o.cost.toFixed(2)}`}
                 </button>
               ))}
           </div>

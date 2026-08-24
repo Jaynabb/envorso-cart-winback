@@ -43,13 +43,13 @@ for (const d of verbose ? result.decisions : []) {
   }
   if (d.outcome === "offer" && d.offer_id) {
     const offer = getOffer(d.offer_id)!;
-    const seats = offer.inventoryCost(cart);
+    const given = offer.opportunityCost(cart);
     const price =
-      (d.cost_usd ?? 0) > 0
-        ? `$${d.cost_usd!.toFixed(2)} cash`
-        : seats > 0
-          ? `${seats} seats of inventory`
-          : "free";
+      (d.cost_usd ?? 0) === 0
+        ? "free"
+        : given > 0 && offer.cashCost(cart) === 0
+          ? `$${d.cost_usd!.toFixed(2)} in seats given up`
+          : `$${d.cost_usd!.toFixed(2)}`;
     console.log(`           ${d.headline}  (${price})`);
     if (d.review) console.log(`           reviewer: ${d.review.verdict}`);
   } else {
@@ -65,7 +65,7 @@ console.log(
   `  ${m.total} carts   ${m.offers} offers   ${m.holds} holds   ${m.blocked} blocked`,
 );
 console.log(
-  `  would spend $${m.proposed_cash_usd.toFixed(2)} cash + ${m.proposed_inventory_seats} seats of inventory`,
+  `  would give up $${m.proposed_cost_usd.toFixed(2)} total ($${m.proposed_given_away_usd.toFixed(2)} of it seats rather than cash)`,
 );
 console.log(
   `  agents cost $${m.cost_usd.toFixed(4)} (${result.usage.input_tokens} in / ${result.usage.output_tokens} out) in ${(m.elapsed_ms / 1000).toFixed(1)}s`,

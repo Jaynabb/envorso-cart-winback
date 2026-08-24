@@ -1,5 +1,5 @@
 import type { CartFacts, Decision, FanRead } from "./schema.ts";
-import { getOffer } from "./catalog.ts";
+import { getOffer, totalCost } from "./catalog.ts";
 
 /**
  * The parts of this system that are rules, not judgement.
@@ -35,16 +35,23 @@ export const SUPPRESSION_DAYS = 7;
 export const LOYAL_TICKETS = 10;
 export const LOYAL_RECENCY_DAYS = 60;
 
-/** Ceilings on cash. The cap is per run, because a bad day should be bounded. */
-export const MAX_CASH_PER_CART = 60;
-export const DAILY_CASH_CAP = 250;
+/**
+ * Ceilings on what the club gives away, in dollars.
+ *
+ * Counts cash AND revenue handed over as inventory, because a seat given to
+ * someone who would have paid for it is as gone as a dollar discounted. The
+ * daily one exists because a bad day should be bounded even when every single
+ * decision on it was defensible.
+ */
+export const MAX_COST_PER_CART = 60;
+export const DAILY_COST_CAP = 250;
 
 /**
  * Over this, a second opinion is worth paying for. The reviewer runs on the
  * cheap model by default and escalates past this line — capability where the
  * money is, rather than uniformly.
  */
-export const ESCALATION_CASH_USD = 15;
+export const ESCALATION_COST_USD = 15;
 
 /**
  * The strongest offer allowed, given how likely the fan was to return anyway.
@@ -186,13 +193,13 @@ export function gate(
  * never shown an option it isn't permitted to pick, and the invariant goes back
  * to being the backstop it was meant to be.
  */
-export function affordable(cashCost: number): boolean {
-  return cashCost <= MAX_CASH_PER_CART;
+export function affordable(cost: number): boolean {
+  return cost <= MAX_COST_PER_CART;
 }
 
 /** Does this proposal need the better reviewer model? */
-export function needsEscalation(cashCost: number, offerRank: number): boolean {
-  return cashCost > ESCALATION_CASH_USD || offerRank >= 4;
+export function needsEscalation(cost: number, strength: number): boolean {
+  return cost > ESCALATION_COST_USD || strength >= 4;
 }
 
 /* ---------- the invariants ------------------------------------------ */
@@ -261,9 +268,9 @@ export function checkInvariants(cart: CartFacts, decision: Decision): string[] {
     );
   }
 
-  const cash = offer.cashCost(cart);
-  if (cash > MAX_CASH_PER_CART) {
-    problems.push(`CAP: $${cash.toFixed(2)} exceeds the $${MAX_CASH_PER_CART} per-cart ceiling.`);
+  const cost = totalCost(offer, cart);
+  if (cost > MAX_COST_PER_CART) {
+    problems.push(`CAP: $${cost.toFixed(2)} exceeds the $${MAX_COST_PER_CART} per-cart ceiling.`);
   }
 
   // The model asserting a number we can compute ourselves.
@@ -276,7 +283,7 @@ export function checkInvariants(cart: CartFacts, decision: Decision): string[] {
   if (decision.proposal) {
     const proposed = getOffer(decision.proposal.offer_id);
     if (proposed) {
-      const proposedCash = proposed.cashCost(cart);
+      const proposedCash = totalCost(proposed, cart);
       if (Math.abs(decision.proposal.claimed_cost_usd - proposedCash) > 0.01) {
         problems.push(
           `COST: the strategist claimed ${decision.proposal.offer_id} costs $${decision.proposal.claimed_cost_usd.toFixed(2)}; it actually costs $${proposedCash.toFixed(2)}.`,
@@ -291,7 +298,7 @@ export function checkInvariants(cart: CartFacts, decision: Decision): string[] {
 /** Run-level check. The per-cart caps can each pass while the day still overspends. */
 export function checkRunTotal(decisions: Decision[]): string[] {
   const total = decisions.reduce((sum, d) => sum + (d.cost_usd ?? 0), 0);
-  if (total <= DAILY_CASH_CAP) return [];
+  if (total <= DAILY_COST_CAP) return [];
 
   // Deliberately not auto-trimmed. Every individual offer here passed its own
   // checks; what's over budget is the day, and choosing which fans to drop is a
@@ -299,6 +306,6 @@ export function checkRunTotal(decisions: Decision[]): string[] {
   // total as approvals happen so the decision is made with the number visible.
   const offers = decisions.filter((d) => d.outcome === "offer").length;
   return [
-    `DAILY CAP: approving all ${offers} offers would spend $${total.toFixed(2)} against a $${DAILY_CASH_CAP} daily cap. Each one passed on its own — it's the day that's over budget. Approve selectively, or raise the cap deliberately.`,
+    `DAILY CAP: approving all ${offers} offers would spend $${total.toFixed(2)} against a $${DAILY_COST_CAP} daily cap. Each one passed on its own — it's the day that's over budget. Approve selectively, or raise the cap deliberately.`,
   ];
 }
