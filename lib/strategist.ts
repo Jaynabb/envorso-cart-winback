@@ -5,7 +5,7 @@ import {
   type OfferProposal,
 } from "./schema.ts";
 import { eligibleOffers, upgradeTarget } from "./catalog.ts";
-import { MAX_RANK_BY_RETURN_LIKELIHOOD } from "./policy.ts";
+import { MAX_RANK_BY_RETURN_LIKELIHOOD, affordable } from "./policy.ts";
 import { runAgent, type AgentResult } from "./agent.ts";
 
 /**
@@ -57,7 +57,7 @@ Call the propose_offer tool exactly once.`;
 export function buildStrategistUserPrompt(cart: CartFacts, read: FanRead): string {
   const ceiling = MAX_RANK_BY_RETURN_LIKELIHOOD[read.return_likelihood];
   const menu = eligibleOffers(cart)
-    .filter((o) => o.concession_rank <= ceiling)
+    .filter((o) => o.concession_rank <= ceiling && affordable(o.cashCost(cart)))
     .map((o) => {
       const cash = o.cashCost(cart);
       const seats = o.inventoryCost(cart);

@@ -81,6 +81,38 @@ export const MIN_RANK_BY_RETURN_LIKELIHOOD: Record<FanRead["return_likelihood"],
   unknown: 2,
 };
 
+/**
+ * The share of qualified carts that deliberately get nothing.
+ *
+ * This is the only honest way to answer "are these offers any good". Redemption
+ * rate on its own is a vanity metric: some of the fans who convert after an
+ * offer were going to convert anyway, and counting them makes any campaign look
+ * like it works. Holding a slice back and comparing gives you the number that
+ * matters — how many extra carts got finished BECAUSE of the offer.
+ *
+ * Applied after a cart qualifies, never before, so the two groups are alike in
+ * every way except whether we contacted them.
+ */
+export const HOLDOUT_PERCENT = 10;
+
+/**
+ * Stable assignment: the same fan is always on the same side.
+ *
+ * Deterministic on the fan id rather than random per run, because a fan who
+ * flips between groups day to day is in neither, and the comparison stops
+ * meaning anything. FNV-1a — small, dependency-free, and spreads well enough
+ * for a bucket decision.
+ */
+export function isHoldout(fanId: string, percent: number = HOLDOUT_PERCENT): boolean {
+  if (percent <= 0) return false;
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < fanId.length; i++) {
+    hash ^= fanId.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+  return hash % 100 < percent;
+}
+
 /* ---------- the gate ------------------------------------------------ */
 
 export type GateResult =
@@ -93,7 +125,7 @@ export type GateResult =
  */
 export function gate(
   cart: CartFacts,
-  opts: { lastContactedDaysAgo?: number | null } = {},
+  opts: { lastContactedDaysAgo?: number | null; holdoutPercent?: number } = {},
 ): GateResult {
   if (!cart.email_opt_in) {
     return {
@@ -130,7 +162,32 @@ export function gate(
     };
   }
 
+  // Last, so the held-back group is drawn only from carts we would otherwise
+  // have contacted. Off by default: the sample run is scoring the agent's
+  // judgement, and a cart pulled out for measurement would muddy that.
+  if (opts.holdoutPercent && isHoldout(cart.fan_id, opts.holdoutPercent)) {
+    return {
+      pass: false,
+      outcome: "hold",
+      reason: `Held back on purpose — this fan is in the ${opts.holdoutPercent}% control group. They get nothing today so we can tell later how many carts the offers actually rescued, rather than counting fans who were coming back anyway.`,
+    };
+  }
+
   return { pass: true };
+}
+
+/**
+ * Offers this cart is actually allowed to receive.
+ *
+ * Every invariant needs a matching enforcement point or it's a report rather
+ * than a guard rail — the per-cart cap was caught by checkInvariants three runs
+ * in a row while the pipeline cheerfully let the offer through, because nothing
+ * upstream had removed it from the menu. Filtering here means the strategist is
+ * never shown an option it isn't permitted to pick, and the invariant goes back
+ * to being the backstop it was meant to be.
+ */
+export function affordable(cashCost: number): boolean {
+  return cashCost <= MAX_CASH_PER_CART;
 }
 
 /** Does this proposal need the better reviewer model? */
@@ -234,9 +291,14 @@ export function checkInvariants(cart: CartFacts, decision: Decision): string[] {
 /** Run-level check. The per-cart caps can each pass while the day still overspends. */
 export function checkRunTotal(decisions: Decision[]): string[] {
   const total = decisions.reduce((sum, d) => sum + (d.cost_usd ?? 0), 0);
-  return total > DAILY_CASH_CAP
-    ? [
-        `DAILY CAP: this run proposes $${total.toFixed(2)} in concessions against a $${DAILY_CASH_CAP} cap.`,
-      ]
-    : [];
+  if (total <= DAILY_CASH_CAP) return [];
+
+  // Deliberately not auto-trimmed. Every individual offer here passed its own
+  // checks; what's over budget is the day, and choosing which fans to drop is a
+  // business call rather than an arithmetic one. The console shows the running
+  // total as approvals happen so the decision is made with the number visible.
+  const offers = decisions.filter((d) => d.outcome === "offer").length;
+  return [
+    `DAILY CAP: approving all ${offers} offers would spend $${total.toFixed(2)} against a $${DAILY_CASH_CAP} daily cap. Each one passed on its own — it's the day that's over budget. Approve selectively, or raise the cap deliberately.`,
+  ];
 }

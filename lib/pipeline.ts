@@ -6,10 +6,12 @@ import {
 import { getOffer, describeOffer } from "./catalog.ts";
 import {
   gate,
+  affordable,
   needsEscalation,
   checkInvariants,
   checkRunTotal,
   MAX_RANK_BY_RETURN_LIKELIHOOD,
+  MIN_RANK_BY_RETURN_LIKELIHOOD,
 } from "./policy.ts";
 import { readFan } from "./analyst.ts";
 import { proposeOffer } from "./strategist.ts";
@@ -70,11 +72,17 @@ function hold(cart: CartFacts, headline: string, extra: Partial<Decision> = {}):
   };
 }
 
+export interface RunOptions {
+  /** Share of qualified carts held back to measure lift. Off by default. */
+  holdoutPercent?: number;
+}
+
 async function decideOne(
   cart: CartFacts,
+  opts: RunOptions = {},
 ): Promise<{ decision: Decision; usage: Usage }> {
   // [0] Deterministic gate. Costs nothing, cannot hallucinate, runs first.
-  const gated = gate(cart);
+  const gated = gate(cart, { holdoutPercent: opts.holdoutPercent });
   if (!gated.pass) {
     return {
       usage: emptyUsage(),
@@ -122,7 +130,7 @@ async function decideOne(
   }
 
   const proposed = getOffer(proposal.offer_id);
-  if (!proposed || !proposed.eligible(cart).ok) {
+  if (!proposed || !proposed.eligible(cart).ok || !affordable(proposed.cashCost(cart))) {
     return {
       usage: sumUsage([readResult.usage, proposalResult.usage]),
       decision: hold(
@@ -165,9 +173,17 @@ async function decideOne(
     const replacement = review.replacement_offer_id
       ? getOffer(review.replacement_offer_id)
       : undefined;
+    // Bounded on both sides. Validating only the ceiling let a reviewer whittle
+    // an offer below the point of sending it — found on a 60-cart run, where a
+    // fan with no reason to return got a bare reminder. Sending nothing is
+    // always allowed; sending something too thin to work is not.
+    const rank = replacement?.concession_rank ?? -1;
     const valid =
       replacement &&
-      replacement.concession_rank <= MAX_RANK_BY_RETURN_LIKELIHOOD[read.return_likelihood] &&
+      affordable(replacement.cashCost(cart)) &&
+      rank <= MAX_RANK_BY_RETURN_LIKELIHOOD[read.return_likelihood] &&
+      (rank >= MIN_RANK_BY_RETURN_LIKELIHOOD[read.return_likelihood] ||
+        replacement.id === "no_offer") &&
       replacement.id !== proposed.id;
 
     if (!replacement || !replacement.eligible(cart).ok || !valid) {
@@ -207,7 +223,10 @@ async function decideOne(
 /** Small pool: enough to keep wall-clock sane, not enough to rate-limit. */
 const CONCURRENCY = 4;
 
-export async function runPipeline(rawCarts: unknown[]): Promise<RunResult> {
+export async function runPipeline(
+  rawCarts: unknown[],
+  opts: RunOptions = {},
+): Promise<RunResult> {
   const carts = rawCarts.map((c) => CartFactsSchema.parse(c));
   const started = Date.now();
   const decisions: Decision[] = new Array(carts.length);
@@ -217,7 +236,7 @@ export async function runPipeline(rawCarts: unknown[]): Promise<RunResult> {
   async function worker() {
     while (cursor < carts.length) {
       const i = cursor++;
-      const { decision, usage } = await decideOne(carts[i]);
+      const { decision, usage } = await decideOne(carts[i], opts);
       decisions[i] = decision;
       usageByCart[carts[i].cart_id] = usage;
     }

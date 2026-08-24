@@ -9,6 +9,7 @@ import { getOffer } from "../lib/catalog.ts";
  *   node --env-file=.env.local scripts/run.mts
  *   node --env-file=.env.local scripts/run.mts --carts data/generated.json
  *   node --env-file=.env.local scripts/run.mts --save outputs/run.json
+ *   node --env-file=.env.local scripts/run.mts --holdout 10
  */
 
 const args = process.argv.slice(2);
@@ -19,15 +20,20 @@ const flag = (name: string) => {
 
 const cartsPath = flag("carts") ?? "data/carts.json";
 const savePath = flag("save");
+const holdoutPercent = Number(flag("holdout") ?? 0);
 
 const carts = JSON.parse(readFileSync(cartsPath, "utf8"));
-console.log(`\nrunning ${carts.length} carts from ${cartsPath}...\n`);
+console.log(
+  `\nrunning ${carts.length} carts from ${cartsPath}${holdoutPercent ? ` (${holdoutPercent}% held back as a control group)` : ""}...\n`,
+);
 
-const result = await runPipeline(carts);
+const result = await runPipeline(carts, { holdoutPercent });
 
 const ICON = { offer: "OFFER  ", hold: "HOLD   ", blocked: "BLOCKED" } as const;
 
-for (const d of result.decisions) {
+const verbose = carts.length <= 12 || args.includes("--verbose");
+
+for (const d of verbose ? result.decisions : []) {
   const cart = carts.find((c: { cart_id: string }) => c.cart_id === d.cart_id);
   console.log(`${ICON[d.outcome]}  ${d.cart_id}`);
   if (d.read) {

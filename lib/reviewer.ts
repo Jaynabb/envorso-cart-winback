@@ -10,6 +10,7 @@ import {
   LOYAL_RECENCY_DAYS,
   LOYAL_TICKETS,
   MAX_RANK_BY_RETURN_LIKELIHOOD,
+  affordable,
 } from "./policy.ts";
 import { runAgent, ESCALATION_MODEL, type AgentResult } from "./agent.ts";
 
@@ -79,7 +80,10 @@ export function buildReviewerUserPrompt(
   // The whole menu they could have picked, not just the cheaper half — the
   // reviewer has to be able to say "this is too thin" as well as "too much".
   const alternatives = eligibleOffers(cart)
-    .filter((o) => o.concession_rank <= ceiling && o.id !== offerId)
+    .filter(
+      (o) =>
+        o.concession_rank <= ceiling && o.id !== offerId && affordable(o.cashCost(cart)),
+    )
     .map((o) => {
       const cash = o.cashCost(cart);
       const seats = o.inventoryCost(cart);

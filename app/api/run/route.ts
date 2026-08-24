@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { runPipeline } from "../../../lib/pipeline.ts";
 import { CATALOG, describeOffer } from "../../../lib/catalog.ts";
 import { buildCopy } from "../../../lib/copy.ts";
+import { DAILY_CASH_CAP } from "../../../lib/policy.ts";
 import type { CartFacts } from "../../../lib/schema.ts";
 
 /**
@@ -58,7 +59,12 @@ export async function POST(request: Request) {
       };
     });
 
-    return NextResponse.json({ items: enriched, meta: result.meta, runViolations: result.runViolations });
+    return NextResponse.json({
+      items: enriched,
+      meta: result.meta,
+      runViolations: result.runViolations,
+      policy: { daily_cash_cap: DAILY_CASH_CAP },
+    });
   } catch (err) {
     // Something structural — the cart file is missing or unreadable. Return a
     // real status and a readable message rather than an opaque 500.
