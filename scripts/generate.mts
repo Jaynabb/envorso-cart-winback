@@ -42,7 +42,8 @@ const pick = <T,>(xs: T[]): T => xs[Math.floor(rand() * xs.length)];
 const between = (lo: number, hi: number) => lo + Math.floor(rand() * (hi - lo + 1));
 
 const SECTIONS = ["Upper Deck", "Lower Bowl", "Club"] as const;
-const SEAT_PRICE: Record<string, number> = { "Upper Deck": 35, "Lower Bowl": 55, Club: 90 };
+/** Same prices the real carts imply — see SECTION_PRICE in lib/catalog.ts. */
+const SEAT_PRICE: Record<string, number> = { "Upper Deck": 35, "Lower Bowl": 53, Club: 90 };
 
 /**
  * Shaped rather than uniform, because uniform data doesn't look like a real

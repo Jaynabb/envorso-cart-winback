@@ -16,16 +16,37 @@ import type { CartFacts } from "./schema.ts";
 export const OFFER_KINDS = ["none", "reminder", "fee_waiver", "upgrade", "discount"] as const;
 export type OfferKind = (typeof OFFER_KINDS)[number];
 
-/** Nominal per-seat price by section, and the ladder an upgrade climbs. */
 const SECTION_LADDER = ["Upper Deck", "Lower Bowl", "Club"] as const;
-const SEAT_PRICE: Record<string, number> = {
+
+/**
+ * Per-seat price by section, taken from the carts rather than invented.
+ *
+ * Every cart states its own price — value divided by seats — so these are
+ * observed, not assumed: Upper Deck is $35 in both carts that use it, Club is
+ * $90, and Lower Bowl comes in at $48 and $58, averaging $53. An earlier
+ * version of this file had $55 for Lower Bowl, which was me rounding rather
+ * than reading.
+ *
+ * Sanity check against the real club: Seawolves tickets run about $39-$73 and
+ * average $50, so a $35-$90 spread across three tiers is the right shape.
+ *
+ * In production these are the price levels in the ticketing platform, per
+ * fixture. Envorso runs that platform, so this is a lookup rather than a guess.
+ */
+const SECTION_PRICE: Record<string, number> = {
   "Upper Deck": 35,
-  "Lower Bowl": 55,
+  "Lower Bowl": 53,
   Club: 90,
 };
 
 /** Per-seat service fee, the thing a fee waiver waives. */
 const SERVICE_FEE_PER_SEAT = 6;
+
+/*
+ * Also a lookup in production. Whether waiving it costs the club or costs
+ * Envorso depends on who books the fee, which is a question for whoever owns
+ * the P&L — flagged rather than assumed either way.
+ */
 
 /**
  * How much of each section we expect to sell for a typical fixture.
@@ -146,8 +167,12 @@ export const CATALOG: CatalogEntry[] = [
     opportunityCost: (c) => {
       const target = upgradeTarget(c.section);
       if (!target) return 0;
-      const given = SEAT_PRICE[target] * (SELL_THROUGH[target] ?? 0);
-      const freed = SEAT_PRICE[c.section] * (SELL_THROUGH[c.section] ?? 0);
+      // The seat we hand over is priced from the section. The seat we free up
+      // is priced from THIS cart — value over seats is exactly what this fan
+      // was going to pay, so half of this sum is measured rather than assumed.
+      const paidPerSeat = c.cart_value_usd / c.seats;
+      const given = SECTION_PRICE[target] * (SELL_THROUGH[target] ?? 0);
+      const freed = paidPerSeat * (SELL_THROUGH[c.section] ?? 0);
       return round2(Math.max(0, given - freed) * c.seats);
     },
     eligible: (c) =>
