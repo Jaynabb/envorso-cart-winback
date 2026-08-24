@@ -107,9 +107,9 @@ export const CATALOG: CatalogEntry[] = [
   {
     id: "upgrade_one_tier",
     kind: "upgrade",
-    label: "Free upgrade, one section better",
+    label: "Free seat upgrade",
     description:
-      "Move them one section up at the price they already had in the cart. Costs no cash — it spends a seat that was likely going unsold — and it's a better story than money off. The right tool for winning back a fan who has drifted away.",
+      "Move them up a section at the price they already had in the cart — the fan is told exactly which section, by name. Costs no cash, because it spends a seat that was likely going unsold, and it reads as being looked after rather than marked down. The right tool for winning back a fan who has drifted away.",
     concession_rank: 3,
     cashCost: () => 0,
     inventoryCost: (c) => c.seats,

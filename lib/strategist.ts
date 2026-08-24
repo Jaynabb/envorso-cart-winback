@@ -4,7 +4,7 @@ import {
   type FanRead,
   type OfferProposal,
 } from "./schema.ts";
-import { eligibleOffers, upgradeTarget } from "./catalog.ts";
+import { describeOffer, eligibleOffers } from "./catalog.ts";
 import { MAX_RANK_BY_RETURN_LIKELIHOOD, affordable } from "./policy.ts";
 import { runAgent, type AgentResult } from "./agent.ts";
 
@@ -67,8 +67,12 @@ export function buildStrategistUserPrompt(cart: CartFacts, read: FanRead): strin
           : seats > 0
             ? `costs no cash, gives away ${seats} seat${seats === 1 ? "" : "s"} of better inventory`
             : "costs nothing";
-      const target = o.id === "upgrade_one_tier" ? ` (${cart.section} → ${upgradeTarget(cart.section)})` : "";
-      return `- ${o.id}${target} — ${o.label}. ${price}.\n    ${o.description}`;
+      // Named the way the FAN will see it, not with the generic catalog label.
+      // The reviewer once turned down an upgrade for being "invisible — they
+      // won't know what one section better means", which was true of our label
+      // and not of the email, where the section is spelled out. How an option is
+      // described to a model changes which option it picks.
+      return `- ${o.id} — ${describeOffer(o.id, cart)}. ${price}.\n    ${o.description}`;
     })
     .join("\n");
 

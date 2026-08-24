@@ -172,10 +172,13 @@ export default function Console() {
         <button className="run" onClick={run} disabled={running}>
           {running ? "Reading carts…" : items ? "Run again" : "Review today's carts"}
         </button>
+        {/* What the API call cost is an engineer's number, and this screen
+            belongs to a marketer. The cost/model trade-off is argued in the
+            README, where it's actually assessed, rather than parked on an
+            operator's dashboard where nobody owns it. */}
         {ranAt && meta && (
           <span className="stamp">
-            {ranAt} · {(meta.elapsed_ms / 1000).toFixed(1)}s · agents cost $
-            {meta.cost_usd.toFixed(3)}
+            {ranAt} · {(meta.elapsed_ms / 1000).toFixed(1)}s
           </span>
         )}
         {meta && (

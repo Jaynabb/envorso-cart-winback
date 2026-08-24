@@ -5,7 +5,7 @@ import {
   type FanRead,
   type Review,
 } from "./schema.ts";
-import { eligibleOffers, getOffer, upgradeTarget } from "./catalog.ts";
+import { describeOffer, eligibleOffers, getOffer } from "./catalog.ts";
 import {
   LOYAL_RECENCY_DAYS,
   LOYAL_TICKETS,
@@ -97,7 +97,7 @@ export function buildReviewerUserPrompt(
           : delta > 0
             ? `costs $${delta.toFixed(2)} MORE cash`
             : `costs $${Math.abs(delta).toFixed(2)} less cash`;
-      return `  - ${o.id} — ${o.label} (${price}; ${dir}, ${cashNote})`;
+      return `  - ${o.id} — ${describeOffer(o.id, cart)} (${price}; ${dir}, ${cashNote})`;
     })
     .join("\n");
 
@@ -114,7 +114,7 @@ export function buildReviewerUserPrompt(
     ? read.risk_flags.map((f) => `  - ${f}`).join("\n")
     : "  (none)";
 
-  const target = offerId === "upgrade_one_tier" ? ` (${cart.section} → ${upgradeTarget(cart.section)})` : "";
+  const described = describeOffer(offerId, cart);
 
   return `What the analyst found:
 
@@ -129,7 +129,7 @@ The fan's history: ${cart.lifetime_tickets} lifetime tickets, last purchase ${
   }.
 The cart: ${cart.seats} seat${cart.seats === 1 ? "" : "s"} in ${cart.section}, $${cart.cart_value_usd.toFixed(2)}, abandoned ${cart.abandoned_hours_ago} hours ago.
 
-Proposed: **${offer?.label ?? offerId}**${target}
+Proposed: **${described}**
 Costs the club: ${price}
 
 ${alternatives ? `Everything else available for this cart, at this read:\n${alternatives}` : "There is nothing else available for this cart."}
