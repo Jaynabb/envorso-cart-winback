@@ -130,7 +130,7 @@ async function decideOne(
   }
 
   const proposed = getOffer(proposal.offer_id);
-  if (!proposed || !proposed.eligible(cart).ok || !affordable(totalCost(proposed, cart))) {
+  if (!proposed || !proposed.eligible(cart).ok || !affordable(totalCost(proposed, cart), cart.cart_value_usd)) {
     return {
       usage: sumUsage([readResult.usage, proposalResult.usage]),
       decision: hold(
@@ -180,7 +180,7 @@ async function decideOne(
     const strength = replacement?.strength ?? -1;
     const valid =
       replacement &&
-      affordable(totalCost(replacement, cart)) &&
+      affordable(totalCost(replacement, cart), cart.cart_value_usd) &&
       strength <= MAX_STRENGTH_BY_RETURN_LIKELIHOOD[read.return_likelihood] &&
       (strength >= MIN_STRENGTH_BY_RETURN_LIKELIHOOD[read.return_likelihood] ||
         replacement.id === "no_offer") &&
@@ -243,7 +243,7 @@ export async function runPipeline(
   }
   await Promise.all(Array.from({ length: Math.min(CONCURRENCY, carts.length) }, worker));
 
-  const runViolations = checkRunTotal(decisions);
+  const runViolations = checkRunTotal(decisions, carts);
   const usage = sumUsage(Object.values(usageByCart));
 
   // How much of the day's spend is revenue handed over rather than cash out

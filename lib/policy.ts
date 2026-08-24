@@ -36,15 +36,40 @@ export const LOYAL_TICKETS = 10;
 export const LOYAL_RECENCY_DAYS = 60;
 
 /**
- * Ceilings on what the club gives away, in dollars.
+ * Ceilings on what the club gives away.
  *
- * Counts cash AND revenue handed over as inventory, because a seat given to
- * someone who would have paid for it is as gone as a dollar discounted. The
- * daily one exists because a bad day should be bounded even when every single
- * decision on it was defensible.
+ * Expressed as a share of what's at stake rather than as flat dollars, because
+ * a flat number is a number somebody made up. $60 was mine, and it was wrong in
+ * a way worth remembering: `C-1003`'s cart is $58, so a $60 offer would have
+ * passed a $60 ceiling while being worth more than the cart it was rescuing.
+ *
+ * A share can't do that, and it scales without anyone editing a constant — the
+ * same rule holds for five carts a day and five hundred.
+ *
+ * Counts cash AND revenue handed over as seats, because a seat given to someone
+ * who would have paid for it is as gone as a dollar discounted.
  */
-export const MAX_COST_PER_CART = 60;
-export const DAILY_COST_CAP = 250;
+
+/** Never give away more than a fifth of the cart you're trying to rescue. */
+export const MAX_SHARE_OF_CART = 0.2;
+
+/**
+ * The day's budget, in real dollars, and the one number here that has to come
+ * from the club.
+ *
+ * Dollars rather than another share, because the two caps are for different
+ * failure modes and only one of them is depth. The per-cart share above already
+ * stops any single offer being disproportionate. What a daily budget guards
+ * against is volume — and a share can't see volume at all, since a hundred
+ * offers at ten percent is still ten percent. Only an absolute number notices
+ * that today the agent wanted to spend four times what the club spends in a
+ * week.
+ *
+ * The default here is a placeholder, not a recommendation. It should be set to
+ * whatever the Seawolves actually budget for win-back promotion in a day, and
+ * shipping without someone at the club setting it is shipping a made-up number.
+ */
+export const DAILY_HARD_CEILING_USD = 250;
 
 /**
  * Over this, a second opinion is worth paying for. The reviewer runs on the
@@ -193,8 +218,8 @@ export function gate(
  * never shown an option it isn't permitted to pick, and the invariant goes back
  * to being the backstop it was meant to be.
  */
-export function affordable(cost: number): boolean {
-  return cost <= MAX_COST_PER_CART;
+export function affordable(cost: number, cartValue: number): boolean {
+  return cost <= cartValue * MAX_SHARE_OF_CART;
 }
 
 /** Does this proposal need the better reviewer model? */
@@ -269,8 +294,12 @@ export function checkInvariants(cart: CartFacts, decision: Decision): string[] {
   }
 
   const cost = totalCost(offer, cart);
-  if (cost > MAX_COST_PER_CART) {
-    problems.push(`CAP: $${cost.toFixed(2)} exceeds the $${MAX_COST_PER_CART} per-cart ceiling.`);
+  const ceiling = cart.cart_value_usd * MAX_SHARE_OF_CART;
+  if (cost > ceiling) {
+    const share = Math.round((cost / cart.cart_value_usd) * 100);
+    problems.push(
+      `CAP: $${cost.toFixed(2)} is ${share}% of a $${cart.cart_value_usd.toFixed(2)} cart. The ceiling is ${Math.round(MAX_SHARE_OF_CART * 100)}% — $${ceiling.toFixed(2)} here.`,
+    );
   }
 
   // The model asserting a number we can compute ourselves.
@@ -296,16 +325,23 @@ export function checkInvariants(cart: CartFacts, decision: Decision): string[] {
 }
 
 /** Run-level check. The per-cart caps can each pass while the day still overspends. */
-export function checkRunTotal(decisions: Decision[]): string[] {
-  const total = decisions.reduce((sum, d) => sum + (d.cost_usd ?? 0), 0);
-  if (total <= DAILY_COST_CAP) return [];
+export function checkRunTotal(decisions: Decision[], carts: CartFacts[]): string[] {
+  const offers = decisions.filter((d) => d.outcome === "offer");
+  if (offers.length === 0) return [];
 
-  // Deliberately not auto-trimmed. Every individual offer here passed its own
+  const total = offers.reduce((sum, d) => sum + (d.cost_usd ?? 0), 0);
+  if (total <= DAILY_HARD_CEILING_USD) return [];
+
+  const valueAtStake = offers.reduce((sum, d) => {
+    const cart = carts.find((c) => c.cart_id === d.cart_id);
+    return sum + (cart?.cart_value_usd ?? 0);
+  }, 0);
+
+  // Deliberately not auto-trimmed. Every individual offer passed its own
   // checks; what's over budget is the day, and choosing which fans to drop is a
-  // business call rather than an arithmetic one. The console shows the running
-  // total as approvals happen so the decision is made with the number visible.
-  const offers = decisions.filter((d) => d.outcome === "offer").length;
+  // business call rather than an arithmetic one. The console fills a budget bar
+  // as approvals happen so the decision gets made with the number visible.
   return [
-    `DAILY CAP: approving all ${offers} offers would spend $${total.toFixed(2)} against a $${DAILY_COST_CAP} daily cap. Each one passed on its own — it's the day that's over budget. Approve selectively, or raise the cap deliberately.`,
+    `DAILY BUDGET: approving all ${offers.length} offers spends $${total.toFixed(2)} against a $${DAILY_HARD_CEILING_USD} budget, to rescue $${valueAtStake.toFixed(2)} of carts. Each one passed on its own — it's the day that's over. Approve selectively, or raise the budget deliberately.`,
   ];
 }

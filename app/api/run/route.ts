@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { runPipeline } from "../../../lib/pipeline.ts";
 import { CATALOG, describeOffer, totalCost } from "../../../lib/catalog.ts";
 import { buildCopy } from "../../../lib/copy.ts";
-import { DAILY_COST_CAP } from "../../../lib/policy.ts";
+import { DAILY_HARD_CEILING_USD } from "../../../lib/policy.ts";
 import type { CartFacts } from "../../../lib/schema.ts";
 
 /**
@@ -63,7 +63,7 @@ export async function POST(request: Request) {
       items: enriched,
       meta: result.meta,
       runViolations: result.runViolations,
-      policy: { daily_cost_cap: DAILY_COST_CAP },
+      policy: { daily_budget_usd: DAILY_HARD_CEILING_USD },
     });
   } catch (err) {
     // Something structural — the cart file is missing or unreadable. Return a

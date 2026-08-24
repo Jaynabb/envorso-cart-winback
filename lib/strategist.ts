@@ -63,7 +63,7 @@ Call the propose_offer tool exactly once.`;
 export function buildStrategistUserPrompt(cart: CartFacts, read: FanRead): string {
   const ceiling = MAX_STRENGTH_BY_RETURN_LIKELIHOOD[read.return_likelihood];
   const menu = eligibleOffers(cart)
-    .filter((o) => o.strength <= ceiling && affordable(o.cashCost(cart)))
+    .filter((o) => o.strength <= ceiling && affordable(totalCost(o, cart), cart.cart_value_usd))
     .map((o) => {
       // One number, stated flatly. An earlier version said "no cash, but..."
       // next to the figure for an upgrade, and the reviewer read the words and

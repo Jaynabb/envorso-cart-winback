@@ -86,7 +86,7 @@ export function buildReviewerUserPrompt(
   const alternatives = eligibleOffers(cart)
     .filter(
       (o) =>
-        o.strength <= ceiling && o.id !== offerId && affordable(o.cashCost(cart)),
+        o.strength <= ceiling && o.id !== offerId && affordable(totalCost(o, cart), cart.cart_value_usd),
     )
     .map((o) => {
       const price = `$${totalCost(o, cart).toFixed(2)}`;

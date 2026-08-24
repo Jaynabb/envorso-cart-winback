@@ -74,7 +74,7 @@ export default function Console() {
       setItems(body.items);
       setMeta(body.meta);
       setRunViolations(body.runViolations ?? []);
-      setCap(body.policy?.daily_cost_cap ?? null);
+      setCap(body.policy?.daily_budget_usd ?? null);
       setStanding({});
       setRanAt(
         new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }),
@@ -197,7 +197,7 @@ export default function Console() {
               <>
                 approved <b>{approvedCount}</b> ·{" "}
                 <b className={overCap ? "over" : undefined}>${approvedCost.toFixed(2)}</b>
-                {cap !== null && <> of ${cap} today</>}
+                {cap !== null && <> of ${cap.toFixed(2)} today</>}
               </>
             )}
           </span>
@@ -217,8 +217,8 @@ export default function Console() {
           </div>
           <span className="budget-label">
             {overCap
-              ? `$${(approvedCost - cap).toFixed(2)} over the daily cap`
-              : `$${(cap - approvedCost).toFixed(2)} left today`}
+              ? `$${(approvedCost - cap).toFixed(2)} over the day’s budget`
+              : `$${(cap - approvedCost).toFixed(2)} left in today’s budget`}
           </span>
         </div>
       )}
