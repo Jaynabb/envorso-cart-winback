@@ -19,19 +19,30 @@ export type OfferKind = (typeof OFFER_KINDS)[number];
 const SECTION_LADDER = ["Upper Deck", "Lower Bowl", "Club"] as const;
 
 /**
- * Per-seat price by section, taken from the carts rather than invented.
+ * Per-seat price by section, read off the carts rather than invented.
  *
- * Every cart states its own price — value divided by seats — so these are
- * observed, not assumed: Upper Deck is $35 in both carts that use it, Club is
- * $90, and Lower Bowl comes in at $48 and $58, averaging $53. An earlier
- * version of this file had $55 for Lower Bowl, which was me rounding rather
- * than reading.
+ * Every cart states its own price — value divided by seats:
+ *
+ *   Upper Deck   $35, $35        consistent
+ *   Lower Bowl   $48, $58        NOT one number
+ *   Club         $90             one observation
+ *
+ * Lower Bowl below is the midpoint of two data points, which is a weak thing to
+ * call a price. Real venues price by row inside a section, so $48-$58 is
+ * probably the actual spread rather than noise, and one of these is a
+ * front-row-ish seat and the other isn't.
+ *
+ * Worth knowing whether that uncertainty changes any answer, and here it
+ * doesn't. Running the upgrade cost at $48, $53 and $58 moves it from $28.70 to
+ * $42.70 on C-1005 — and all three are over the 20% cap, so the offer is off
+ * the menu either way. Same on C-1002. The number is uncertain; the decision
+ * isn't sensitive to it.
  *
  * Sanity check against the real club: Seawolves tickets run about $39-$73 and
  * average $50, so a $35-$90 spread across three tiers is the right shape.
  *
- * In production these are the price levels in the ticketing platform, per
- * fixture. Envorso runs that platform, so this is a lookup rather than a guess.
+ * In production these are price levels in the ticketing platform, per fixture.
+ * Envorso runs that platform, so it's a lookup rather than an average of two.
  */
 const SECTION_PRICE: Record<string, number> = {
   "Upper Deck": 35,
