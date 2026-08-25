@@ -60,22 +60,28 @@ const SERVICE_FEE_PER_SEAT = 6;
  */
 
 /**
- * How much of each section we expect to sell for a typical fixture.
+ * A note on what an upgrade costs, and why there are no probabilities here.
  *
- * THE assumption in this whole model, and the one to argue with first. In
- * production these come from the ticketing system per fixture — a Saturday
- * against a rival and a wet Wednesday are not the same number. Here they're
- * constants, stated out loud rather than buried, because the entire question of
- * whether an upgrade is cheap or expensive turns on them.
+ * The honest cost of moving a fan up a section is the revenue on the seat you
+ * hand over, weighted by the chance it would have sold, minus the cheaper seat
+ * you free up, weighted by the same. I had those two chances in here as 70% and
+ * 55% — numbers I had made up, doing real work in real arithmetic.
  *
- * Starfire holds roughly 4,000 and MLR crowds usually don't fill it, so the
- * lower bowl fills first and the upper deck carries the empty seats.
+ * The Seawolves report selling out Starfire, which holds just over 4,000. If a
+ * section sells out, both probabilities are 1 and the whole thing collapses to
+ * the price difference: a $53 seat given for a $35 one costs $18. No estimate
+ * required.
+ *
+ * That is also the conservative case. Anything less than a sell-out makes an
+ * upgrade CHEAPER than this, down to free if the better seat was never going to
+ * sell — so pricing at the gap can overstate the cost but never hides one.
+ * Better to be wrong in the direction that spends less of the club's money.
+ *
+ * Per-fixture fill lives in the ticketing platform, which Envorso runs. When
+ * that's wired in, this becomes a lookup and the number falls for quiet
+ * fixtures.
  */
-const SELL_THROUGH: Record<string, number> = {
-  "Upper Deck": 0.55,
-  "Lower Bowl": 0.7,
-  Club: 0.8,
-};
+
 
 export interface Eligibility {
   ok: boolean;
@@ -178,13 +184,11 @@ export const CATALOG: CatalogEntry[] = [
     opportunityCost: (c) => {
       const target = upgradeTarget(c.section);
       if (!target) return 0;
-      // The seat we hand over is priced from the section. The seat we free up
-      // is priced from THIS cart — value over seats is exactly what this fan
-      // was going to pay, so half of this sum is measured rather than assumed.
+      // The seat handed over is priced from the section; the seat freed up is
+      // priced from THIS cart, since value over seats is exactly what this fan
+      // was going to pay. The gap between them is the cost, per seat.
       const paidPerSeat = c.cart_value_usd / c.seats;
-      const given = SECTION_PRICE[target] * (SELL_THROUGH[target] ?? 0);
-      const freed = paidPerSeat * (SELL_THROUGH[c.section] ?? 0);
-      return round2(Math.max(0, given - freed) * c.seats);
+      return round2(Math.max(0, SECTION_PRICE[target] - paidPerSeat) * c.seats);
     },
     eligible: (c) =>
       upgradeTarget(c.section)

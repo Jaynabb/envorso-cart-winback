@@ -87,16 +87,16 @@ rule editing. One club, one marketer, one screen.
 **Four checks, and only two of them scale.**
 
 **1. An answer key, written before the model ran.** I decided what each of the five
-carts deserved, and why, before an agent saw the data — so our judgement is the
-benchmark and the agent is graded against it, rather than us reading its output and
-talking ourselves into agreeing. `scripts/eval.mts` scores decision, offer, and the
+carts deserved, and why, before an agent saw the data — so my judgement is the
+benchmark and the agent is graded against it, rather than me reading its output and
+talking myself into agreeing. `scripts/eval.mts` scores decision, offer, and the
 read of return-likelihood. It currently scores 100% on all four lines. It needs labels,
-so it does not scale past carts we sat down and reasoned about.
+so it does not scale past carts I sat down and reasoned about.
 
 **2. Invariants, which need no labels.** Rules checkable with arithmetic on any day's
 carts: consent is never violated, nothing goes out inside the 24-hour cooling-off
 window, the offer exists in the catalog, no offer exceeds a fifth of its cart, the cost
-the model claimed matches what we compute, and offer strength stays inside the ceiling
+the model claimed matches what the catalog computes, and offer strength stays inside the ceiling
 *and* floor the read allows. These are what would actually run every morning. Sixty
 generated carts pass them.
 
@@ -114,9 +114,9 @@ it is the one signal a single engineer can actually maintain.
 ### What could make it produce a bad offer without me noticing
 
 **An agent inventing its own rule, fluently.** This happened. The reviewer started
-arguing, twice, that we shouldn't spend on fans who "haven't converted once" — prudent-
-sounding, confident, and the opposite of the rule the system runs on. Nothing in the
-output looked wrong. Under our rule, a fan with no history is precisely the case where
+arguing, twice, that the club shouldn't spend on fans who "haven't converted once" —
+prudent-sounding, confident, and the opposite of the rule the system runs on. Nothing in
+the output looked wrong. Under my rule, a fan with no history is precisely the case where
 an offer is justified, because there is no evidence they return without one.
 
 **An agent reasoning correctly over numbers I made up.** This is the one that actually
@@ -124,12 +124,12 @@ cost money, and it is subtler. My cost model reported a seat upgrade as "$0 cash
 the agent handed them out — and at 60 carts it was a third over any sensible budget.
 The reviewer had been telling me for hours that "a small discount costs less than the
 inventory required." It was right. I had overruled it by printing `$0` in the menu it
-reads. Every disagreement the agent had with our answer key traced back to a price I
+reads. Every disagreement the agent had with my answer key traced back to a price I
 had invented; once the prices were real, agreement went from 0% to 100%.
 
 **The wording of my own prompt changing the decision.** Three times. The reviewer
 rejected an upgrade as "invisible — they won't know what one section better means",
-which was true of our internal label and false of the email a fan actually gets. It
+which was true of my internal label and false of the email a fan actually gets. It
 read "no cash, but…" next to a $38 figure and approved it on the grounds that it cost
 no cash. And "cheapest tool" was ambiguous once prices were honest, because waiving
 fees on four seats costs more than 15% off the same cart. **The prompt is not
