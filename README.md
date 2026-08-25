@@ -21,6 +21,71 @@ node --env-file=.env.local scripts/eval.mts   # score them against the answer ke
 
 ---
 
+## How it works
+
+Four stages. Three of them are agents, and the first one isn't a model at all.
+
+```
+cart ─▶ [0] POLICY ─▶ [1] ANALYST ─▶ [2] STRATEGIST ─▶ [3] REVIEWER ─▶ marketer
+        rules, no AI   what kind      what to offer     try to reject   approve
+        no cost        of fan is      from a fixed      it, from the    edit or
+                       this?          menu             facts alone     reject
+```
+
+Each stage is handed the **previous stage's typed output**, not the raw cart, and each
+is deliberately kept in the dark about something.
+
+**[0] Policy — `lib/policy.ts`, no model involved.** Consent, a 24-hour cooling-off
+window, suppression, per-cart spend ceiling. You shouldn't need a language model to
+notice you don't have permission to email someone. `C-1003` is stopped here and never
+reaches an agent.
+
+**[1] Analyst — `lib/analyst.ts`.** Says what kind of fan this is and how likely they
+were to come back with no contact from us. It is forbidden from proposing an offer, and
+**it is never shown the cart value** — money can't tell you whether someone returns, so
+it isn't given any. Separating the read from the decision is what stops the read being
+quietly bent to justify a discount.
+
+**[2] Strategist — `lib/strategist.ts`.** Picks from a closed catalog by ID. It works
+from the analyst's read, not the raw row, so it can't re-derive a more convenient view
+of the fan. It can't invent an offer the club doesn't sell, because there's no field to
+write one in.
+
+**[3] Reviewer — `lib/reviewer.ts`.** Tries to find what's wrong with the proposal, and
+**never sees the strategist's reasoning** — only the facts and the offer. A fluent
+justification is the easiest thing in the world for a model to produce, and a reviewer
+shown the argument ends up grading the argument. Blind, the only thing it can do is
+work out for itself whether these facts justify this offer.
+
+**[4] The marketer.** Nothing sends itself.
+
+### How this design fails, and what catches it
+
+**The strategist rationalises.** Hand it a read saying "this fan is coming back anyway"
+and it will still propose 15% off, with a confident, plausible reason — because it
+believes its job is to produce offers. Valid output, good prose, wrong answer. This is
+the failure that looks right, and it happened on the first run.
+
+Four things catch it, cheapest first:
+
+1. `no_offer` is a first-class value in the same enum as every other offer, demonstrated
+   in the prompt — not an exception path.
+2. The reviewer only ever sees the analyst's read, so it can't inherit the strategist's
+   reasoning.
+3. **A deterministic check**: how strong an offer is may not exceed what the read allows,
+   and may not fall below what's worth sending. That's arithmetic, so it holds however
+   good the prose was.
+4. The hand-written answer key catches drift between runs.
+
+**And when the agent is wrong anyway,** the marketer edits or rejects it on the card,
+with the whole chain visible behind *"How it got here."* Every edit and reject is a
+label — see Section B.
+
+**It fails closed.** If any stage errors or returns something invalid, the cart holds.
+There is no path through this system where something breaking produces an offer.
+
+---
+
 ## Section A — Written analysis
 
 ### Which carts deserve an offer
@@ -110,6 +175,25 @@ fan is always on the same side — a fan who flips groups is in neither.
 a judgement on the agent. Edit rate per offer type is the daily health metric: if
 marketers rewrite 40% of upgrades, the upgrade rule is wrong. No platform required, and
 it is the one signal a single engineer can actually maintain.
+
+### What it costs, and where the capability goes
+
+| stage | model | why |
+|---|---|---|
+| Policy | none | consent and arithmetic don't need a model |
+| Analyst, strategist | Haiku 4.5, `temperature: 0` | classification against a tight schema is what a small fast model is for |
+| Reviewer | Haiku, **escalating to Sonnet** when the offer is a cash discount or costs over $15 | pay for the better model where money actually leaves the building |
+
+Measured, not estimated: **about 3 cents for the five sample carts, 34 cents for sixty
+— roughly half a cent a cart.** At the Seawolves' volume this is not a number anyone
+needs to manage, which is itself the point: the expensive decision here is the offer,
+not the inference.
+
+The escalation rule is the trade-off. Reviewing a reminder with a frontier model is
+paying more to check something that costs nothing. Reviewing a 15% discount is worth it,
+because that's the call that ends up on someone's card statement. Same reason the policy
+gate isn't an agent — an LLM asked to enforce a consent rule will enforce it *almost*
+every time, and "almost" isn't a standard you put in front of a fan.
 
 ### What could make it produce a bad offer without me noticing
 
