@@ -222,6 +222,26 @@ export function needsEscalation(cost: number, strength: number): boolean {
   return cost > ESCALATION_COST_USD || strength >= 4;
 }
 
+/**
+ * What the screen should say beyond the decision itself.
+ *
+ * A loyal fan correctly gets no offer — they were coming back anyway, and
+ * discounting them is both wasted margin and a strange message. But "no offer"
+ * renders as a blank, and a blank sitting next to a first-timer's 15% is the
+ * fairness problem this system is otherwise silent about. The club's core
+ * should get looked after in a currency that isn't money, and that decision
+ * belongs to a person, not to this pipeline. So: put it in front of them.
+ */
+export function operatorNote(cart: CartFacts): string | null {
+  const loyal =
+    cart.lifetime_tickets >= LOYAL_TICKETS &&
+    cart.last_purchase_days_ago !== null &&
+    cart.last_purchase_days_ago <= LOYAL_RECENCY_DAYS;
+  if (!loyal) return null;
+
+  return `${cart.lifetime_tickets} lifetime tickets, last bought ${cart.last_purchase_days_ago} days ago — this is the club's core. Leaving them alone is right; a discount here would be wasted and slightly insulting. If you want to do something for them, it shouldn't be money.`;
+}
+
 /* ---------- the invariants ------------------------------------------ */
 
 /**

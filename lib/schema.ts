@@ -149,6 +149,15 @@ export const DecisionSchema = z.object({
   review: ReviewSchema.nullable(),
   /** Set when the deterministic gate stopped it, before any model ran. */
   gate_reason: z.string().nullable(),
+  /**
+   * Something the marketer might want to do that this system can't do for them.
+   *
+   * The headline says what was decided. This says what's worth knowing anyway —
+   * chiefly that holding a loyal fan leaves a blank, and a blank next to a
+   * first-timer's 15% is how a six-year season-ticket holder ends up hearing
+   * that a stranger got a better deal than them.
+   */
+  operator_note: z.string().nullable(),
   /** Invariant violations found after the fact. Empty is the healthy case. */
   violations: z.array(z.string()),
 });

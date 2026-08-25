@@ -55,6 +55,7 @@ for (const d of verbose ? result.decisions : []) {
   } else {
     console.log(`           ${d.headline}`);
   }
+  if (d.operator_note) console.log(`           note: ${d.operator_note}`);
   for (const v of d.violations) console.log(`           !! ${v}`);
   console.log();
 }

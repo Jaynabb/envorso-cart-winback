@@ -7,6 +7,7 @@ import { getOffer, describeOffer, totalCost } from "./catalog.ts";
 import {
   gate,
   affordable,
+  operatorNote,
   needsEscalation,
   checkInvariants,
   MAX_STRENGTH_BY_RETURN_LIKELIHOOD,
@@ -64,6 +65,7 @@ function hold(cart: CartFacts, headline: string, extra: Partial<Decision> = {}):
     proposal: null,
     review: null,
     gate_reason: null,
+    operator_note: operatorNote(cart),
     violations: [],
     ...extra,
   };
@@ -93,6 +95,7 @@ async function decideOne(
         proposal: null,
         review: null,
         gate_reason: gated.reason,
+        operator_note: operatorNote(cart),
         violations: [],
       },
     };
@@ -211,6 +214,7 @@ async function decideOne(
     proposal,
     review,
     gate_reason: null,
+    operator_note: operatorNote(cart),
     violations: [],
   };
   decision.violations = checkInvariants(cart, decision);

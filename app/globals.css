@@ -595,3 +595,15 @@ main {
   .spend { margin-left: 0; width: 100%; }
 }
 
+
+/* ---------- operator note ----------------------------------- */
+/* Something a person might want to do that the system can't do for them.
+   Quieter than a violation, louder than nothing. */
+
+.op-note {
+  margin: 10px 0 0;
+  padding: 8px 0 8px 12px;
+  border-left: 2px solid var(--rule-strong);
+  font-size: 13px;
+  color: var(--ink-2);
+}

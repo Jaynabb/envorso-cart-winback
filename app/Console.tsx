@@ -447,6 +447,11 @@ function Card({
         </p>
       </div>
 
+      {/* Not a decision — a prompt. Holding a loyal fan is correct and leaves a
+          blank, and a blank next to a first-timer's 15% is how a season-ticket
+          holder hears that a stranger got a better deal. */}
+      {d.operator_note && <p className="op-note">{d.operator_note}</p>}
+
       {d.violations.length > 0 && (
         <div className="card-violation">
           {d.violations.map((v, i) => (
