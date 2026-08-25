@@ -35,9 +35,13 @@ Not the size of the cart. Not how loyal they are. A cart that would have been fi
 
 ## "No offer" is a real answer
 
-It is the first option on the menu and it is frequently the correct one. You are not here to find something to give every fan. If the read says this person was coming back without us, the right proposal is no_offer, and proposing one anyway is the single most expensive mistake you can make.
+It is the first option on the menu and it is frequently the correct one. You are not here to find something to give every fan. If the read says this person was coming back without us, then anything that COSTS money is money burned, and proposing it anyway is the single most expensive mistake you can make.
 
 Worked example — a fan read as loyal with a high chance of returning unaided, who left a large cart an hour ago: **no_offer**. He is the likeliest person on the page to finish by himself, and money aimed at him is money that changes nothing.
+
+**But notice what that rule is about: money.** A plain reminder costs the club nothing at all — no margin, no seat. Where there is no cost, "they were coming back anyway" is not an argument, because there is nothing being wasted. The question becomes simply whether the message is useful or whether it is noise.
+
+Worked example — a regular buyer who walked away from a cart three hours ago: **reminder_only**. They almost certainly got interrupted rather than changed their mind, a nudge is genuinely useful to them, and it costs nothing to send. Choosing no_offer here isn't restraint, it's just a fan not finishing a purchase they wanted to make.
 
 ## Choosing, when something is warranted
 
@@ -60,10 +64,23 @@ Say why this offer suits **this read**. Reference what the analyst found — the
 Call the propose_offer tool exactly once.`;
 }
 
-export function buildStrategistUserPrompt(cart: CartFacts, read: FanRead): string {
-  const ceiling = MAX_STRENGTH_BY_RETURN_LIKELIHOOD[read.return_likelihood];
+export function buildStrategistUserPrompt(
+  cart: CartFacts,
+  read: FanRead,
+  maxStrength?: number,
+  minStrength?: number,
+): string {
+  const ceiling = Math.min(
+    MAX_STRENGTH_BY_RETURN_LIKELIHOOD[read.return_likelihood],
+    maxStrength ?? Infinity,
+  );
   const menu = eligibleOffers(cart)
-    .filter((o) => o.strength <= ceiling && affordable(totalCost(o, cart), cart.cart_value_usd))
+    .filter(
+      (o) =>
+        o.strength <= ceiling &&
+        o.strength >= (minStrength ?? 0) &&
+        affordable(totalCost(o, cart), cart.cart_value_usd),
+    )
     .map((o) => {
       // One number, stated flatly. An earlier version said "no cash, but..."
       // next to the figure for an upgrade, and the reviewer read the words and
@@ -98,12 +115,19 @@ Offers available for this cart, given that read:
 
 ${menu}
 
+${
+    (minStrength ?? 0) > 0
+      ? "\n**Sending nothing is not available for this cart.** Club policy is that a fan who left a cart this recently always hears something, because a reminder is free and they most likely just got interrupted. Pick from the menu above.\n"
+      : ""
+  }
 Pick one by id. Report its cost exactly as listed above.`;
 }
 
 export async function proposeOffer(
   cart: CartFacts,
   read: FanRead,
+  maxStrength?: number,
+  minStrength?: number,
 ): Promise<AgentResult<OfferProposal>> {
   return runAgent({
     name: "strategist",
@@ -111,7 +135,7 @@ export async function proposeOffer(
     toolDescription:
       "Propose one offer from the menu by id, or no_offer. Report the cost exactly as the menu lists it.",
     system: buildStrategistSystemPrompt(),
-    user: buildStrategistUserPrompt(cart, read),
+    user: buildStrategistUserPrompt(cart, read, maxStrength, minStrength),
     schema: OfferProposalSchema,
   });
 }

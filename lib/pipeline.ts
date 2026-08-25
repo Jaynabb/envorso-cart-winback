@@ -3,7 +3,7 @@ import {
   type Decision,
   CartFactsSchema,
 } from "./schema.ts";
-import { getOffer, describeOffer, totalCost } from "./catalog.ts";
+import { CATALOG, getOffer, describeOffer, totalCost } from "./catalog.ts";
 import {
   gate,
   affordable,
@@ -82,6 +82,11 @@ async function decideOne(
 ): Promise<{ decision: Decision; usage: Usage }> {
   // [0] Deterministic gate. Costs nothing, cannot hallucinate, runs first.
   const gated = gate(cart, { holdoutPercent: opts.holdoutPercent });
+  // A cart can pass the gate and still carry a ceiling — inside the cooling-off
+  // window a reminder is allowed and money isn't.
+  const maxStrength = gated.pass ? gated.maxStrength : undefined;
+  const minStrength = gated.pass ? gated.minStrength : undefined;
+  const gateNote = gated.pass ? gated.note : undefined;
   if (!gated.pass) {
     return {
       usage: emptyUsage(),
@@ -112,14 +117,26 @@ async function decideOne(
   const read = readResult.value;
 
   // [2] Strategist — given that read, what (if anything) do we give them?
-  const proposalResult = await proposeOffer(cart, read);
+  const proposalResult = await proposeOffer(cart, read, maxStrength, minStrength);
   if (!proposalResult.ok) {
     return {
       usage: sumUsage([readResult.usage, proposalResult.usage]),
       decision: hold(cart, `Couldn't propose an offer — ${proposalResult.note}`, { read }),
     };
   }
-  const proposal = proposalResult.value;
+  let proposal = proposalResult.value;
+
+  // Policy beats preference. Where the club has decided a fan always hears
+  // something, a model choosing silence doesn't get to overrule that — it gets
+  // moved up to the floor, and the card says so. Stated in the prompt AND
+  // enforced here, because a rule that lives only in a prompt is a suggestion.
+  const floorOffer =
+    (minStrength ?? 0) > 0 && getOffer(proposal.offer_id)!.strength < minStrength!
+      ? CATALOG.find((o) => o.strength === minStrength && o.eligible(cart).ok)
+      : undefined;
+  if (floorOffer) {
+    proposal = { ...proposal, offer_id: floorOffer.id, claimed_cost_usd: totalCost(floorOffer, cart) };
+  }
 
   // The null decision needs no review — there is nothing to protect against.
   if (proposal.offer_id === "no_offer") {
@@ -130,7 +147,12 @@ async function decideOne(
   }
 
   const proposed = getOffer(proposal.offer_id);
-  if (!proposed || !proposed.eligible(cart).ok || !affordable(totalCost(proposed, cart), cart.cart_value_usd)) {
+  if (
+    !proposed ||
+    !proposed.eligible(cart).ok ||
+    !affordable(totalCost(proposed, cart), cart.cart_value_usd) ||
+    proposed.strength > (maxStrength ?? Infinity)
+  ) {
     return {
       usage: sumUsage([readResult.usage, proposalResult.usage]),
       decision: hold(
@@ -143,7 +165,14 @@ async function decideOne(
 
   // [3] Reviewer — independent, and paid for properly when cash is at stake.
   const escalate = needsEscalation(totalCost(proposed, cart), proposed.strength);
-  const reviewResult = await reviewOffer(cart, read, proposal.offer_id, escalate);
+  const reviewResult = await reviewOffer(
+    cart,
+    read,
+    proposal.offer_id,
+    escalate,
+    maxStrength,
+    minStrength,
+  );
   if (!reviewResult.ok) {
     return {
       usage: sumUsage([readResult.usage, proposalResult.usage, reviewResult.usage]),
@@ -156,7 +185,11 @@ async function decideOne(
   const review = reviewResult.value;
   const usage = sumUsage([readResult.usage, proposalResult.usage, reviewResult.usage]);
 
-  if (review.verdict === "veto") {
+  // A veto below a policy floor isn't a veto, it's a disagreement with the
+  // club. The reviewer decides whether THIS is the right thing to send; it
+  // doesn't decide whether the club talks to its own fans. Its objection still
+  // reaches the marketer, who can reject the card by hand.
+  if (review.verdict === "veto" && (minStrength ?? 0) === 0) {
     return {
       usage,
       decision: hold(cart, review.objection, { read, proposal, review }),
@@ -181,7 +214,10 @@ async function decideOne(
     const valid =
       replacement &&
       affordable(totalCost(replacement, cart), cart.cart_value_usd) &&
-      strength <= MAX_STRENGTH_BY_RETURN_LIKELIHOOD[read.return_likelihood] &&
+      strength <= Math.min(
+        MAX_STRENGTH_BY_RETURN_LIKELIHOOD[read.return_likelihood],
+        maxStrength ?? Infinity,
+      ) &&
       (strength >= MIN_STRENGTH_BY_RETURN_LIKELIHOOD[read.return_likelihood] ||
         replacement.id === "no_offer") &&
       replacement.id !== proposed.id;
@@ -214,7 +250,7 @@ async function decideOne(
     proposal,
     review,
     gate_reason: null,
-    operator_note: operatorNote(cart),
+    operator_note: [gateNote, operatorNote(cart)].filter(Boolean).join(" ") || null,
     violations: [],
   };
   decision.violations = checkInvariants(cart, decision);

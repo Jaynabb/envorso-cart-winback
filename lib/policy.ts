@@ -19,11 +19,45 @@ import { getOffer, totalCost } from "./catalog.ts";
 /* ---------- the numbers, and why they are what they are ------------- */
 
 /**
- * Below this, a cart is not abandoned — it's in progress. Someone got up, took
- * a call, left the tab open. Contacting them inside a day mostly reaches people
- * who were coming back anyway, and the ones it converts would have converted.
+ * Under this, the cart isn't abandoned — it's open. They may be at the checkout
+ * right now, and "you left something behind" while someone is typing their card
+ * number is the worst message we could send.
+ */
+export const TOO_FRESH_HOURS = 2;
+
+/**
+ * Under this, don't spend money — but do feel free to say something.
+ *
+ * This started as a rule that held everything under a day, which was wrong in a
+ * way worth writing down. The reason not to contact a fan inside 24 hours is
+ * that most of them are coming back anyway, so anything we GIVE them is margin
+ * spent on a sale we already had. That argument is about cost. A plain reminder
+ * costs nothing, and someone who got interrupted three hours ago is exactly who
+ * a reminder helps.
+ *
+ * So the window doesn't block contact. It caps what contact is allowed to cost.
  */
 export const COOLING_OFF_HOURS = 24;
+
+/**
+ * Inside the cooling-off window the offer is exactly a reminder — no more, and
+ * also no less.
+ *
+ * The ceiling is the incrementality rule: don't spend money on someone who was
+ * coming back anyway. The floor is a business decision, and it's the club's to
+ * make rather than the model's. Asked to choose, the strategist argued for
+ * silence — "a reminder costs nothing, but it's also unnecessary contact to
+ * someone who was already coming back" — which is a perfectly reasonable
+ * position and not the one the club takes. A fan who walked away from a
+ * half-finished purchase three hours ago most likely got interrupted, a nudge
+ * is a service to them, and it costs nothing to send.
+ *
+ * Written as a rule rather than argued into the prompt. Nudging a model until
+ * it agrees with you isn't a policy, it's a coincidence you'll have to
+ * rediscover every time the prompt changes.
+ */
+export const COOLING_OFF_MAX_STRENGTH = 1;
+export const COOLING_OFF_MIN_STRENGTH = 1;
 
 /** Past this, the fixture is stale and the moment has gone. Nudging reads as noise. */
 export const STALE_CEILING_HOURS = 24 * 14;
@@ -143,7 +177,18 @@ export function isHoldout(fanId: string, percent: number = HOLDOUT_PERCENT): boo
 /* ---------- the gate ------------------------------------------------ */
 
 export type GateResult =
-  | { pass: true }
+  | {
+      pass: true;
+      /**
+       * A ceiling this cart carries regardless of what the analyst reads, used
+       * for the cooling-off window. Undefined means the read alone decides.
+       */
+      maxStrength?: number;
+      /** A floor this cart carries — what the club always sends in this case. */
+      minStrength?: number;
+      /** Shown on the card so the limit isn't invisible. */
+      note?: string;
+    }
   | { pass: false; outcome: "blocked" | "hold"; reason: string };
 
 /**
@@ -163,12 +208,12 @@ export function gate(
     };
   }
 
-  if (cart.abandoned_hours_ago < COOLING_OFF_HOURS) {
+  if (cart.abandoned_hours_ago < TOO_FRESH_HOURS) {
     const hrs = cart.abandoned_hours_ago;
     return {
       pass: false,
       outcome: "hold",
-      reason: `Abandoned ${hrs} hour${hrs === 1 ? "" : "s"} ago — inside the ${COOLING_OFF_HOURS}-hour window where most fans come back on their own. Re-check tomorrow.`,
+      reason: `Left ${hrs} hour${hrs === 1 ? "" : "s"} ago — that's not an abandoned cart yet, they may still be checking out. Look again later today.`,
     };
   }
 
@@ -197,6 +242,15 @@ export function gate(
       pass: false,
       outcome: "hold",
       reason: `Held back on purpose — this fan is in the ${opts.holdoutPercent}% control group. They get nothing today so we can tell later how many carts the offers actually rescued, rather than counting fans who were coming back anyway.`,
+    };
+  }
+
+  if (cart.abandoned_hours_ago < COOLING_OFF_HOURS) {
+    return {
+      pass: true,
+      maxStrength: COOLING_OFF_MAX_STRENGTH,
+      minStrength: COOLING_OFF_MIN_STRENGTH,
+      note: `Left ${cart.abandoned_hours_ago} hours ago. Most fans this fresh come back on their own, so nothing that costs money goes out until tomorrow — but a reminder is free and they probably just got interrupted.`,
     };
   }
 
@@ -239,7 +293,10 @@ export function operatorNote(cart: CartFacts): string | null {
     cart.last_purchase_days_ago <= LOYAL_RECENCY_DAYS;
   if (!loyal) return null;
 
-  return `${cart.lifetime_tickets} lifetime tickets, last bought ${cart.last_purchase_days_ago} days ago — this is the club's core. Leaving them alone is right; a discount here would be wasted and slightly insulting. If you want to do something for them, it shouldn't be money.`;
+  // Worded to hold up whether this fan is being left alone or sent a free
+  // reminder. An earlier version said "leaving them alone is right", which
+  // started contradicting the card it sat on the moment reminders existed.
+  return `${cart.lifetime_tickets} lifetime tickets, last bought ${cart.last_purchase_days_ago} days ago — this is the club's core. Whatever reaches them, it shouldn't be a discount: they were coming back anyway, and marking their tickets down is both wasted and slightly insulting. If you want to do something for this fan, make it recognition rather than money.`;
 }
 
 /* ---------- the invariants ------------------------------------------ */
@@ -261,9 +318,9 @@ export function checkInvariants(cart: CartFacts, decision: Decision): string[] {
     problems.push("CONSENT: an offer was produced for a fan who never opted in.");
   }
 
-  if (cart.abandoned_hours_ago < COOLING_OFF_HOURS) {
+  if (cart.abandoned_hours_ago < TOO_FRESH_HOURS) {
     problems.push(
-      `COOLING-OFF: an offer was produced ${cart.abandoned_hours_ago}h after abandonment, inside the ${COOLING_OFF_HOURS}h window.`,
+      `TOO FRESH: an offer was produced ${cart.abandoned_hours_ago}h after the cart was left, while the fan may still be at the checkout.`,
     );
   }
 
@@ -281,8 +338,18 @@ export function checkInvariants(cart: CartFacts, decision: Decision): string[] {
   // The spine, as arithmetic — bounded on both sides.
   if (decision.read) {
     const likelihood = decision.read.return_likelihood;
-    const ceiling = MAX_STRENGTH_BY_RETURN_LIKELIHOOD[likelihood];
-    const floor = MIN_STRENGTH_BY_RETURN_LIKELIHOOD[likelihood];
+    const gated = gate(cart);
+    const ceiling = Math.min(
+      MAX_STRENGTH_BY_RETURN_LIKELIHOOD[likelihood],
+      gated.pass ? (gated.maxStrength ?? Infinity) : Infinity,
+    );
+    // Never demand more than the ceiling permits. A lapsed fan who left five
+    // hours ago would otherwise trip both rules at once: the read says a nudge
+    // alone won't move them, and the cooling-off window says a nudge is all
+    // they may have. That isn't a token offer, it's a sequence — a reminder
+    // today, and something with weight behind it tomorrow if they still
+    // haven't come back.
+    const floor = Math.min(MIN_STRENGTH_BY_RETURN_LIKELIHOOD[likelihood], ceiling);
 
     if (offer.strength > ceiling) {
       problems.push(

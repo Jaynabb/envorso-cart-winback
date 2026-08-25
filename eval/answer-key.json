@@ -2,22 +2,34 @@
   "_note": "Written by hand before any model was run against this data. The point of the ordering is that our judgement is the benchmark and the agent is scored against it — not the reverse. `acceptable_offer_ids` is a band rather than one id because more than one offer can be defensible; `preferred_offer_id` is the call we'd make ourselves.",
   "_principles": [
     "Offer strength tracks how unlikely the fan was to return unaided. Never cart value, never loyalty.",
-    "Take the cheapest tool that could plausibly work — and price every tool honestly. A free upgrade is not free: it hands over a seat someone else would likely have bought and only gives back the cheaper seat it frees. On the fill rates in lib/catalog.ts that is roughly $19 a seat, which makes upgrades the expensive option rather than the thrifty one.",
-    "A discount costs its full face value in margin, because a ticket is perishable and the marginal cost of one more person in a seat is close to nothing."
+    "Take the cheapest tool that could plausibly work — and price every tool honestly. A free upgrade is not free: it hands over a seat someone else would likely have bought and only gives back the cheaper one it frees. Moving a fan from a $35 seat to a $53 one costs $18 a seat, which makes upgrades the expensive option rather than the thrifty one.",
+    "A discount costs its full face value in margin, because a ticket is perishable and the marginal cost of one more person in a seat is close to nothing.",
+    "The cooling-off window is about money, not silence. Under 24 hours a fan may hear from us, but only in a way that costs nothing; under 2 hours they hear nothing at all, because they may still be at the checkout."
   ],
   "carts": {
     "C-1001": {
-      "expected_outcome": "hold",
-      "expected_return_likelihood": ["high"],
-      "preferred_offer_id": null,
-      "acceptable_offer_ids": [],
-      "why": "Abandoned 3 hours ago. That isn't an abandoned cart, it's an interrupted one — and this is a regular buyer who bought 21 days ago. Almost anything we send here reaches someone who was coming back anyway. Stopped by the cooling-off gate before any model sees it; re-check tomorrow."
+      "expected_outcome": "offer",
+      "expected_return_likelihood": [
+        "high"
+      ],
+      "preferred_offer_id": "reminder_only",
+      "acceptable_offer_ids": [
+        "reminder_only"
+      ],
+      "why": "Left 3 hours ago by a regular who bought 21 days ago — the likeliest fan here to finish on their own, so nothing that costs money should go near them. But a reminder costs nothing, and someone who walked away from a half-finished purchase this recently most likely got interrupted rather than changed their mind. The cooling-off window doesn't block contact, it caps what contact may cost: reminder, and nothing dearer, until tomorrow."
     },
     "C-1002": {
       "expected_outcome": "offer",
-      "expected_return_likelihood": ["unknown", "low"],
+      "expected_return_likelihood": [
+        "unknown",
+        "low"
+      ],
       "preferred_offer_id": "discount_15",
-      "acceptable_offer_ids": ["discount_15", "discount_10", "upgrade_one_tier"],
+      "acceptable_offer_ids": [
+        "discount_15",
+        "discount_10",
+        "upgrade_one_tier"
+      ],
       "why": "Never purchased, so there is genuinely no history saying he comes back — the one cart in the set where a real offer is honest rather than lazy. Four seats of a brand new fan is the highest acquisition value here, and 15% of $140 is $21. An upgrade for four would give up roughly $77 of expected ticket revenue, so the deepest discount we sell is still the cheaper way to win him."
     },
     "C-1003": {
@@ -29,16 +41,25 @@
     },
     "C-1004": {
       "expected_outcome": "hold",
-      "expected_return_likelihood": ["high"],
+      "expected_return_likelihood": [
+        "high"
+      ],
       "preferred_offer_id": null,
       "acceptable_offer_ids": [],
       "why": "The trap in this dataset. Biggest cart on the page at $540, and the strongest instinct is to chase it — but it was abandoned one hour ago by a fan with 40 lifetime tickets who bought nine days ago. He is the likeliest person here to finish on his own, and a discount to the club's most loyal fan is both wasted margin and slightly insulting. Hold. If it's still open tomorrow, a reminder — never cash."
     },
     "C-1005": {
       "expected_outcome": "offer",
-      "expected_return_likelihood": ["low"],
+      "expected_return_likelihood": [
+        "low"
+      ],
       "preferred_offer_id": "discount_10",
-      "acceptable_offer_ids": ["discount_10", "discount_15", "fee_waiver", "upgrade_one_tier"],
+      "acceptable_offer_ids": [
+        "discount_10",
+        "discount_15",
+        "fee_waiver",
+        "upgrade_one_tier"
+      ],
       "why": "One ticket, 300 days ago, cart cold for four days. The relationship is already gone, so the unaided return chance is near zero and a real offer is justified. A 10% discount costs $7. The upgrade is the tempting answer because it costs no cash — but moving two seats from Upper Deck to Lower Bowl gives up about $38 of expected ticket revenue, five times the discount. Cheapest tool that plausibly works means the money, not the seats."
     }
   }

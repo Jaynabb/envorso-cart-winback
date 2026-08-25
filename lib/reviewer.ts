@@ -44,7 +44,7 @@ Every figure you are shown is money the club does not get, and they compare dire
 How strong an offer can be tracks one thing: how unlikely the fan was to come back on their own. Not the size of the cart, not how loyal they are.
 
 So the questions are:
-- If we sent this fan nothing at all, would they have finished the cart anyway? If probably yes, then anything with a cost attached is money burned, and the verdict is veto.
+- If we sent this fan nothing at all, would they have finished the cart anyway? If probably yes, then anything with a COST attached is money burned, and the verdict is veto. But read that carefully: it applies to offers that cost something. A plain reminder costs nothing, so "they were coming back anyway" is not a reason to veto one — a fan who got interrupted three hours ago is helped by a nudge, and the club pays nothing for it.
 - Is this the weakest tool that plausibly works? If something smaller would do, adjust to it and name it. Weak and cheap are different axes — strength is what it teaches the fan, cost is the dollars — so check you aren't recommending something weaker that costs more. Waiving fees on a large party costs more than a deep discount on the same cart.
 - Is it enough to work at all? If the fan has no reason to return and the proposal is a nudge with nothing behind it, adjust upward and name what should go instead.
 - Does this insult anyone? A fan with ${LOYAL_TICKETS}+ tickets who bought inside ${LOYAL_RECENCY_DAYS} days is the club's core. Marking their tickets down is both wasted margin and a strange message to send someone who already shows up.
@@ -78,9 +78,14 @@ export function buildReviewerUserPrompt(
   cart: CartFacts,
   read: FanRead,
   offerId: string,
+  maxStrength?: number,
+  minStrength?: number,
 ): string {
   const offer = getOffer(offerId);
-  const ceiling = MAX_STRENGTH_BY_RETURN_LIKELIHOOD[read.return_likelihood];
+  const ceiling = Math.min(
+    MAX_STRENGTH_BY_RETURN_LIKELIHOOD[read.return_likelihood],
+    maxStrength ?? Infinity,
+  );
   // The whole menu they could have picked, not just the cheaper half — the
   // reviewer has to be able to say "this is too thin" as well as "too much".
   const alternatives = eligibleOffers(cart)
@@ -129,6 +134,11 @@ Costs the club: ${price}
 
 ${alternatives ? `Everything else available for this cart, at this read:\n${alternatives}` : "There is nothing else available for this cart."}
 
+${
+    (minStrength ?? 0) > 0
+      ? "\n**Whether to make contact at all is already settled for this cart** — the club sends every fan who left something this recently a free reminder, and that isn't yours to overturn. Your job here is narrower: is THIS the right thing to send them? Approve it, or adjust it to something else on the list. Veto isn't available.\n"
+      : ""
+  }
 Should this reach the fan?`;
 }
 
@@ -137,6 +147,8 @@ export async function reviewOffer(
   read: FanRead,
   offerId: string,
   escalate: boolean,
+  maxStrength?: number,
+  minStrength?: number,
 ): Promise<AgentResult<Review>> {
   return runAgent({
     name: "reviewer",
@@ -144,7 +156,7 @@ export async function reviewOffer(
     toolDescription:
       "Decide whether this offer should reach the fan. Veto if the fan was returning anyway; adjust to a named replacement if the proposal is either too generous or too thin to work.",
     system: buildReviewerSystemPrompt(),
-    user: buildReviewerUserPrompt(cart, read, offerId),
+    user: buildReviewerUserPrompt(cart, read, offerId, maxStrength, minStrength),
     schema: ReviewSchema,
     model: escalate ? (process.env.REVIEWER_ESCALATION_MODEL ?? ESCALATION_MODEL) : undefined,
   });
