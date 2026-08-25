@@ -35,10 +35,13 @@ cart ─▶ [0] POLICY ─▶ [1] ANALYST ─▶ [2] STRATEGIST ─▶ [3] REVIE
 Each stage is handed the **previous stage's typed output**, not the raw cart, and each
 is deliberately kept in the dark about something.
 
-**[0] Policy — `lib/policy.ts`, no model involved.** Consent, a 24-hour cooling-off
-window, suppression, per-cart spend ceiling. You shouldn't need a language model to
-notice you don't have permission to email someone. `C-1003` is stopped here and never
-reaches an agent.
+**[0] Policy — `lib/policy.ts`, no model involved.** Consent, timing, suppression, and
+the per-cart spend ceiling. You shouldn't need a language model to notice you don't have
+permission to email someone. `C-1003` is stopped here and never reaches an agent.
+
+Timing isn't a block, it's a ceiling on what contact may cost: under 2 hours nothing at
+all, because they may still be at the checkout; between 2 and 24 hours a free reminder
+and nothing dearer; after that, real offers are available.
 
 **[1] Analyst — `lib/analyst.ts`.** Says what kind of fan this is and how likely they
 were to come back with no contact from us. It is forbidden from proposing an offer, and
@@ -90,30 +93,33 @@ There is no path through this system where something breaking produces an offer.
 
 ### Which carts deserve an offer
 
-Most cart tools ask "how do we win this cart back?" That question is a trap, because
-the easiest carts to win back are the ones that were coming back anyway — and you
-cannot tell the difference from the outcome. You send a discount, the fan buys, the
-dashboard says it worked. You paid for a sale you already had.
+"How do we win this cart back?" is a trap, because the easiest carts to win back are
+the ones that were coming back anyway — and you can't tell from the outcome. You send a
+discount, the fan buys, the dashboard says it worked, and you paid for a sale you
+already had.
 
-So the system asks a different question: **would this fan have come back on their
-own?** How strong an offer can be tracks how *unlikely* that is. Never the size of
-the cart, never how loyal they are.
+So the system asks: **would this fan have come back on their own?** How strong an offer
+can be tracks how *unlikely* that is. Never the size of the cart, never how loyal they
+are.
 
-On the five sample carts that means **two offers, two holds, one block**:
+**How recently they left caps the cost, not the contact.** Under two hours, nothing —
+they may still be at the checkout. Two to 24 hours, a free reminder and no money. After
+that, real offers.
+
+On the five sample carts:
 
 | cart | | decision |
 |---|---|---|
-| `C-1004` | $540 Club, 40 lifetime tickets, abandoned **1 hour ago** | **hold** |
-| `C-1001` | 14 tickets, bought 21 days ago, abandoned 3 hours ago | **hold** |
-| `C-1002` | never purchased, 4 seats, 26 hours | **offer — 15% off, $21** |
-| `C-1005` | one ticket 300 days ago, cart cold 4 days | **offer — 10% off, $7** |
+| `C-1004` | $540 Club, 40 tickets, left **1 hour ago** | **hold** |
+| `C-1001` | 14 tickets, bought 21 days ago, left 3 hours ago | **reminder, free** |
+| `C-1002` | never purchased, 4 seats, 26 hours | **15% off, $21** |
+| `C-1005` | one ticket 300 days ago, cold 4 days | **10% off, $7** |
 | `C-1003` | no email opt-in | **blocked** |
 
 `C-1004` is the trap: the biggest number on the page, and a fan with forty tickets who
 bought nine days ago and walked away an hour ago is the likeliest person here to finish
-by himself. Discounting him is wasted margin and a strange message to send someone who
-already shows up. `C-1003` never reaches a model at all — no consent, no channel, no
-decision to make.
+by himself. `C-1003` never reaches a model at all — no consent, no channel, no decision
+to make.
 
 ### The offer logic
 
@@ -127,8 +133,8 @@ a ticket is worth. Cost is dollars. They do not move together.
 
 Pricing every offer honestly changed the answers. A "free" upgrade is not free — it
 hands over a seat someone else would probably have bought and only gives back the
-cheaper one it frees. On `C-1005` that is **$35.70 to rescue a $70 cart**, against $7
-for a 10% discount. Nothing may exceed a fifth of the cart it is rescuing.
+cheaper one it frees. On `C-1005` that is **$36 against $7** for a 10% discount: half
+the cart, to save the cart. Nothing may exceed a fifth of the cart it is rescuing.
 
 ### What I would not do yet
 
@@ -140,8 +146,8 @@ its price on the card, so nobody can overspend by accident — the cap guarded a
 mode the approval gate already prevents. First thing to add if this ever sends without
 a person in front of it.
 
-**No personalisation past the segment**, no multi-team abstraction, and no self-serve
-rule editing. One club, one marketer, one screen.
+**No personalisation past the segment**, no multi-team abstraction, no self-serve rule
+editing. One club, one marketer, one screen.
 
 ---
 
@@ -159,10 +165,10 @@ read of return-likelihood. It currently scores 100% on all four lines. It needs 
 so it does not scale past carts I sat down and reasoned about.
 
 **2. Invariants, which need no labels.** Rules checkable with arithmetic on any day's
-carts: consent is never violated, nothing goes out inside the 24-hour cooling-off
-window, the offer exists in the catalog, no offer exceeds a fifth of its cart, the cost
-the model claimed matches what the catalog computes, and offer strength stays inside the ceiling
-*and* floor the read allows. These are what would actually run every morning. Sixty
+carts: consent is never violated, nothing at all goes out under two hours and nothing
+that costs money under 24, the offer exists in the catalog, no offer exceeds a fifth of
+its cart, the cost the model claimed matches what the catalog computes, and offer
+strength stays inside both the ceiling and the floor. These are what would actually run every morning. Sixty
 generated carts pass them.
 
 **3. A 10% holdout — the only honest measure of whether this works at all.**
@@ -240,11 +246,18 @@ to pick.
 There is no path through this system where something breaking produces an offer.
 
 **Assumptions get a sensitivity check.** Where a number is a guess, I check whether the
-answer moves when I'm wrong about it. Lower Bowl is $48 in one cart and $58 in another;
-across that whole range the upgrade stays over the cap, so the decision never flips and
-the uncertainty is fine. Sell-through is the opposite — at 20% fill an upgrade is free
-and at 70% it costs $35.70 — which is exactly why that one has to come from Envorso's
-ticketing platform rather than from me.
+answer moves when I'm wrong about it. Lower Bowl is $48 in one cart and $58 in another,
+and I use $53 — across that whole range the upgrade stays over the cap, so the decision
+never flips and the uncertainty doesn't matter.
+
+Where it does matter, I take the conservative side rather than estimating. An upgrade's
+cost depends on whether the better seat would have sold: if it would, the cost is the
+full price gap; if the section was going half empty, it's nothing. I had invented fill
+rates for that — 70% and 55% — until it became clear they were doing real work in real
+arithmetic. The Seawolves report selling out Starfire, so the gap is both the realistic
+case and the expensive one, and pricing at it can overstate a cost but never hide one.
+Per-fixture fill lives in the ticketing platform Envorso runs; that's a lookup, not
+something I should be guessing at.
 
 ---
 
