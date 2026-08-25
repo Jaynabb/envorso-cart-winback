@@ -166,4 +166,96 @@ ticketing platform rather than from me.
 
 ## Section C — AI usage log
 
-*(to come)*
+I built this with Claude Code. Three points where I didn't take what it gave me.
+
+### 1 · The upgrade it told me was free
+
+**What I asked for:** the agent was recommending a free seat upgrade for a fan who'd
+drifted away. I wanted the dollar cost before I accepted the recommendation.
+
+**What it gave me:** free. No cash, just seats.
+
+**What I rejected, and why:** a better seat is worth more than the one they had, and
+someone else could have bought it. Nobody handing over money doesn't make it free. I
+made it work out the real number.
+
+Take a fan with **2 Upper Deck seats at $35 each — a $70 cart**:
+
+| | what it costs the club | what the club keeps |
+|---|---|---|
+| Move them up to Lower Bowl ($53 seats) | **$36** — the $18 gap, twice | **$34** |
+| Take 10% off instead | **$7** | **$63** |
+
+Upgrading gives away **half the cart to save the cart**. The discount gives away a
+tenth. The "free" option was the most expensive thing in the catalog, and it was being
+recommended because nothing had priced it.
+
+**Where those numbers come from.** Ticket prices are read off the carts themselves — a
+$140 cart with 4 seats means Upper Deck is $35. The $18 gap assumes the better seat
+would have sold, which is the realistic case here because the Seawolves report selling
+out Starfire's 4,000 seats, and it's the conservative one — if a section doesn't sell
+out, the upgrade costs less, down to nothing.
+
+**What changed:** every offer is now priced as cash plus revenue given away, and nothing
+may exceed a fifth of the cart it's rescuing. The agent stopped recommending upgrades on
+these carts entirely. Its agreement with the answers I'd written by hand went from 0% to
+100% — every disagreement we'd had traced back to a price that was wrong.
+
+### 2 · The stranger who was about to get a better deal than a six-year fan
+
+**What I asked for:** whether it makes sense to discount a first-time buyer, hoping it
+brings them back for another game.
+
+**What it gave me:** yes, and it showed me the system already does it — 15% off, the
+deepest offer in the catalog, because a first-timer is the one fan there's no evidence
+about. That reasoning is sound. A first ticket isn't $140, it's the start of a
+relationship, and $21 to find out is cheap.
+
+**What I stopped, and why:** here's what that same screen was about to show a marketer.
+
+| cart | fan | offer |
+|---|---|---|
+| `C-1002` | never bought anything | **15% off, $21** |
+| `C-1004` | 40 tickets, bought 9 days ago | **nothing** |
+
+You can't hand a stranger a better deal than a six-year season-ticket holder. This club
+has a few thousand supporters and they know each other. The brief warns about tone-deaf
+offers to loyal fans — and the system had found a way to be tone-deaf by saying nothing
+at all.
+
+**What changed, and what didn't:** the decisions stayed. Leaving the loyal fan alone is
+right — he was coming back on his own, and 15% off one cart isn't what starts that
+conversation. What changed is that the blank now says something. A hold on one of the
+club's core fans carries a note: this is who they are, leaving them alone is correct,
+and if you want to do something for them it shouldn't be money.
+
+**What I decided not to build:** loyal fans need value in a currency that isn't
+discounts — recognition, first access, an upgrade when there's room in the stadium.
+That's a loyalty programme, not a cart tool. So the system doesn't pretend to solve it.
+It puts it in front of the person who can.
+
+### 3 · The budget I had it delete
+
+**What I asked for:** nothing. It built a daily spend cap on its own — $250 a day, a
+warning when a run went over, a bar filling up as I approved offers.
+
+**What I rejected, and why:** every offer here is approved one at a time, by a person,
+with the price on the card. Nobody can overspend by accident; you'd have to click
+through each one individually. The cap was guarding against something that can't happen
+in this system.
+
+**What changed:** all of it went — the constant nobody could source, the check, the
+progress bar, the warning copy, and a concept this README would have had to explain.
+
+The **per-cart limit stayed**, because that one guards something real: it stops the
+agent proposing an offer worth more than the cart it's rescuing. There was a live
+example — a $60 ceiling sitting against a $58 cart.
+
+**What it cost to find out:** three rounds. A cap, then a bug in the cap, then a
+cleverer version of the cap — and the cleverer one didn't work either, because a
+percentage can't catch a runaway day. A hundred offers at ten percent is still ten
+percent.
+
+**The rule I'd take from it:** a guard rail for a system you haven't built yet isn't
+safety, it's complexity. This gets added the day it starts sending without a person in
+front of it. Not before.
