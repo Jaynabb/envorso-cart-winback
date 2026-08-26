@@ -55,8 +55,14 @@ finish by himself.
 
 ### What the offers cost
 
-Seat prices come from the carts. `C-1002` is $140 for 4 Upper Deck seats, so Upper Deck
-is $35. `C-1004` is $540 for 6 Club seats, so Club is $90. Lower Bowl works out at $53.
+Seat prices come from the carts:
+
+```
+Upper Deck   C-1002    $140 / 4 seats  =  $35
+Club         C-1004    $540 / 6 seats  =  $90
+Lower Bowl   C-1001     $96 / 2 seats  =  $48   midpoint
+             C-1003     $58 / 1 seat   =  $58     $53
+```
 
 There are five options: nothing, a reminder, a free seat upgrade, 10% off, 15% off. The
 agent picks one by name and can't invent others.
@@ -87,8 +93,17 @@ them with nothing while a stranger gets 15% off. This club has a few thousand su
 and they know each other.
 
 So crossing 15, 30 or 45 tickets earns a voucher: two seats, one step up, on a later
-order. That's $74. It's owed rather than spent, so it never competes with the win-back
-decision, and nothing comes off the cart they're holding. The rule isn't published.
+order. One step up from the Lower Bowl is the Club:
+
+```
+Club seat            $90
+Lower Bowl seat      $53
+                     ────
+one step             $37   x 2 seats  =  $74
+```
+
+It's owed rather than spent, so it never competes with the win-back decision, and nothing
+comes off the cart they're holding. The rule isn't published.
 
 ### What I didn't build
 
@@ -102,37 +117,38 @@ personalised past the segment, no multi-team version, no self-serve rules.
 
 ### How I'd know the offers are any good
 
-Four checks. Two of them scale.
+Four ways, and they answer different questions. Only two of them keep working once this
+is real.
 
-**1. An answer key.** I wrote down what each of the five carts deserved, and why, before
-any agent ran. `scripts/eval.mts` scores against it, and it gets 5 out of 5 on which
-carts get an offer, which offer they get, and how the fan was read. The limit is that it
-needs me to have labelled the carts, so it stops working past those five.
+**Today — grade it against answers I wrote first.** Before any agent ran, I wrote down
+what each of the five carts should get and why. Then I scored the agents against that,
+not the other way round. `scripts/eval.mts` does it and they match on all five: which
+carts get an offer, which offer, and how the fan was read.
 
-**2. Invariants.** Arithmetic checks that need no labels and run on any day's carts:
+That only works because I sat and thought about five carts. It can't grow.
 
-- consent is never broken
+**Every morning — six checks that need nobody.** These are arithmetic, so they run on any
+day's carts with no answers written in advance:
+
+- the fan opted in to email
 - nothing goes out under two hours
-- the offer exists and is available for that cart
+- the offer is real and available for that cart
 - nothing that costs money goes to a fan we read as coming back anyway
 - nobody gets a bare reminder when a reminder won't move them
-- the price the agent claimed matches the price we calculate
+- the price the agent claimed matches the price we work out ourselves
 
-**This is the half that would run every morning.** Sixty generated carts pass.
+Sixty test carts pass all six. **This is the part that would actually run in
+production.** The answer key is for building it; these are for operating it.
 
-Only things that are always wrong belong on that list. "Take the cheapest that works"
-doesn't, because the agent is allowed to spend more if it says why. An alarm that goes
-off on allowed behaviour teaches people to ignore alarms. That one prints on the card
-instead — *$7.00 dearer than the cheapest thing that would work here* — next to the
-reason.
+**Once it's sending — hold ten percent back.** If we send an offer and the fan buys, that
+looks like a win, but some of those fans were buying anyway. The only honest number is
+the difference between the fans we contacted and a group we deliberately didn't. There's
+no code for this yet, because nothing sends yet — approving hands the marketer text to
+paste.
 
-**3. A holdout, once this actually sends.** Redemption rate counts the fans who were
-coming back anyway. Hold a tenth back and the gap between the two groups is what the
-offers really rescued. I took the code out, because nothing here sends yet.
-
-**4. What the marketer clicks.** Every approve, edit and reject is a label. If four in
-ten reminders come back rewritten, the reminder rule is wrong. It costs nothing and one
-engineer can keep it running.
+**Always — watch what the marketer does.** Every approve, edit and reject is a verdict on
+the agent. If four in ten reminders come back rewritten, the reminder rule is wrong. It
+costs nothing to collect and one engineer can keep it running.
 
 ### What it costs to run
 
@@ -142,27 +158,34 @@ engineer can keep it running.
 | Agents 1 and 2 | Haiku 4.5 | sorting into categories is what a small fast model is for |
 | Agent 3 | Haiku, Sonnet when the offer costs money | pay more only where money leaves |
 
-Measured: **3 cents for the five carts, 34 cents for sixty.** About half a cent each.
+Measured, not estimated:
 
-### How it could be wrong without showing
+```
+5 carts    3 cents
+60 carts   34 cents   ->  34 / 60  =  0.57 cents a cart
+```
 
-The agents reason correctly from bad input. Every step is sound and the answer looks
-fine, because the mistake is in something nobody checked.
+### How it goes wrong
 
-Two examples from this build. The catalog priced a seat upgrade at `$0`, so the agents
-gave them away. And the reviewer's list of alternatives left out the offer it was
+**The agents reason correctly from bad input.** Every step is sound and the answer looks
+fine, because the mistake is in something nobody checked. That's the whole failure mode,
+and it doesn't look like a failure.
+
+Two from this build. The offer list priced a seat upgrade at `$0`, so the agents gave
+them away. And the list of alternatives shown to Agent 3 left out the offer it was
 reviewing, so it said *"the proposed 10% discount isn't even offered here"* and moved two
-carts to the dearer option.
+carts to the more expensive option.
 
-What catches it:
+Five things stop a bad offer reaching a fan:
 
-- A person approves every offer, with the price and the reasoning on the card.
-- Agent 3 never sees why the offer was chosen, so a good-sounding reason can't talk it
-  round.
-- Every check has something enforcing it. The old price cap was reported for three runs
-  while the offers went through anyway, because nothing removed them from the menu.
-- Numbers get tested. Sweeping one across its range shows whether it matters at all.
-- It fails closed. Anything breaks, the cart holds.
+1. A person approves every one, with the price and the reasoning on the card.
+2. Agent 3 never sees why the offer was chosen, so a good-sounding reason can't talk it
+   round.
+3. Every check has something enforcing it. An old price cap was reported for three runs
+   while the offers went out anyway, because nothing removed them from the menu.
+4. Numbers get tested rather than defended. Sweeping one across its range shows whether
+   it changes any answer at all.
+5. It fails closed. Anything breaks, the cart holds and sends nothing.
 
 ---
 
@@ -179,18 +202,27 @@ club.
 It said free. No cash, just seats.
 
 That's wrong. A better seat is worth more than the one they had, and someone else could
-have bought it. So I had it work out the number on a $70 cart:
+have bought it. So I had it work out the number.
+
+Seat prices come from the carts themselves. `C-1002` is a $140 cart with 4 Upper Deck
+seats, so Upper Deck is 140 ÷ 4 = $35. `C-1004` is $540 for 6 Club seats, so Club is
+540 ÷ 6 = $90. Two carts have Lower Bowl seats — $96 for 2 and $58 for 1, so $48 and $58
+— and I take the midpoint, $53.
+
+`C-1005` is 2 Upper Deck seats, a $70 cart. Upgrading them to the Lower Bowl:
 
 ```
 give away 2 Lower Bowl seats   $53 x 2  =  $106
 free up   2 Upper Deck seats   $35 x 2  =   $70
                                            ─────
 the upgrade costs                            $36
-10% off instead    $70 x 0.10  =              $7
+
+10% off instead                $70 x 0.10  =  $7
 ```
 
-The free option was the most expensive thing on the list. It was being recommended
-because nothing had priced it.
+$36 to rescue a $70 cart, against $7 for a discount — five times the price. The free
+option was the most expensive thing on the list. It was being recommended because nothing
+had priced it.
 
 The reviewer agent had been arguing against upgrades for hours and losing, because the
 menu said $0. Once the prices were real it agreed with my answers every time.
@@ -209,19 +241,22 @@ ticket history and an opt-in flag. It had invented the rate, built an offer on t
 and that offer had become the recommended one. It had done the same earlier with
 sell-through rates for each section.
 
-Instead of arguing about which numbers felt reasonable, I had it test them. Every
-threshold, swept across its range against the five carts:
+Instead of arguing about which numbers felt reasonable, I had it test them. It re-ran
+the five carts at every value in each threshold's plausible range, and reported which
+decisions changed:
 
 ```
-share cap        0.2   →  same decisions anywhere from 0.10 to 0.50
-staleness        14d   →  nearest change at 3 days
-loyal fan     10t/60d  →  no change at any value from 3 tickets to 30
+spending cap    set to 20% of cart   same 5 decisions anywhere from 10% to 50%
+staleness       set to 14 days       nothing changes until 3 days
+loyal fan       10 tickets / 60 days no change at any value from 3 tickets to 30
 ```
 
-The cap changed nothing. The loyalty rule never fired at all. Deleting all eleven changed
-one decision out of five, and made it cheaper.
+The cap changed nothing. The loyalty rule never fired at all, because Agent 1 had already
+read those fans off their real purchase history. Deleting all eleven changed one decision
+out of five, and made that one cheaper.
 
-Three numbers are left: two hours, 15 tickets, two seats.
+Three chosen numbers are left: two hours, 15 tickets, two seats. Everything else is a
+seat price read off the carts.
 
 ### 3. What decides whether a fan gets 10% or 15%?
 
@@ -233,12 +268,23 @@ cheapest that works. Every fan who fit the first also qualified for the cheaper 
 as a live option.
 
 Now it depends on whether the fan has bought before, which is a field in the data.
-Bought and stopped, 10%. Never bought, 15%. Across sixty carts that's 21 and 6.
+Bought and stopped, 10%. Never bought, 15%. Across sixty carts that's 21 tens and 6
+fifteens, where before it was 29 tens and no fifteens at all.
 
 ### 4. The club can't bleed money on these upgrades
 
 The loyalty milestone was my idea. What came back upgraded the fan's whole party, on the
 cart they were already holding. I asked what it cost.
+
+It was pricing every seat in the cart. `C-1004` has 6 Club seats and is already in the
+top section, so his reward is a price drop instead of a move:
+
+```
+Club seat            $90
+Lower Bowl seat      $53
+                     ────
+one step             $37   x 6 seats  =  $222
+```
 
 $222 on one order. Three changes:
 
@@ -250,7 +296,10 @@ $222 on one order. Three changes:
   a contract you have to honour forever, and someone works out that one cheap extra seat
   is worth $74.
 
-$222 and $84 both became $74.
+Capped at two seats, that same $37 step is $37 × 2 = **$74**. `C-1001`'s upgrade came
+down the same way: it was being priced off what he'd paid per seat, 96 ÷ 2 = $48, so
+($90 − $48) × 2 = $84. Priced off the section instead, it's $74 as well. One step is one
+step, whoever is buying.
 
 ### What these have in common
 
