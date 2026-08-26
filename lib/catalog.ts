@@ -138,6 +138,12 @@ export interface CatalogEntry {
 
 const alwaysEligible = (): Eligibility => ({ ok: true });
 
+/** One step DOWN the ladder, or null at the bottom. */
+export function tierBelow(section: string): string | null {
+  const i = SECTION_LADDER.indexOf(section as (typeof SECTION_LADDER)[number]);
+  return i > 0 ? SECTION_LADDER[i - 1] : null;
+}
+
 /** One step up the ladder, or null at the top. */
 export function upgradeTarget(section: string): string | null {
   const i = SECTION_LADDER.indexOf(section as (typeof SECTION_LADDER)[number]);

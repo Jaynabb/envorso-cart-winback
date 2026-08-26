@@ -1,5 +1,5 @@
 import type { CartFacts, Decision, FanRead } from "./schema.ts";
-import { getOffer, totalCost, upgradeTarget, SECTION_PRICE } from "./catalog.ts";
+import { getOffer, totalCost, upgradeTarget, tierBelow, SECTION_PRICE } from "./catalog.ts";
 
 /**
  * The parts of this system that are rules, not judgement.
@@ -296,29 +296,51 @@ export function needsEscalation(cost: number, strength: number): boolean {
  */
 export const TICKETS_PER_UPGRADE = 15;
 
+/**
+ * How the milestone gets paid, and — just as important — when.
+ *
+ * If there's a section above them, the seats they are buying RIGHT NOW get
+ * moved up. That's the good version: they cross the threshold, and the tickets
+ * already in their cart are upgraded. Nothing to claim, nothing to remember.
+ *
+ * If they're already in the best seats in the ground there's nowhere to move
+ * them, so the reward lands on their NEXT purchase instead — those seats at the
+ * tier below's price. Deliberately not applied to the cart in front of them:
+ * re-pricing an order someone is halfway through paying for is a different and
+ * messier thing than moving where they sit, and it means the club is handing
+ * back cash on a sale it was already making.
+ *
+ * Both come to roughly the same value — about 12-16% of what a fan spent to
+ * earn it. They just arrive at different times.
+ */
+export type MilestoneReward =
+  | { kind: "upgrade"; section: string; appliesTo: "this_cart" }
+  | { kind: "priced_down"; section: string; appliesTo: "next_purchase" };
+
 export interface Milestone {
   /** The number they land on — 15, 30, 45. */
   at: number;
   /** Lifetime tickets once this cart is paid for. */
   ticketsAfter: number;
-  /**
-   * The section they move to, or null if they're already in the best seats.
-   *
-   * Not every milestone can be paid out. A fan whose cart is in the Club has
-   * nowhere to be upgraded to, and promising them one anyway is worse than
-   * saying nothing — that's a message the club can't honour.
-   */
-  upgradeTo: string | null;
+  reward: MilestoneReward;
   /**
    * What honouring it costs, across the WHOLE cart.
    *
    * The whole party moves or nobody does. A fan who crosses their fifteenth
    * ticket buying two seats isn't going to sit in the Club while whoever they
-   * came with stays in the Upper Deck — they're at the match together. So the
-   * milestone is priced for every seat in the cart, not for the one that
-   * happened to tip them over.
+   * came with stays in the Upper Deck — they're at the match together. So it's
+   * priced for every seat in the cart, not the one that happened to tip them
+   * over.
    */
   costUsd: number;
+  /**
+   * Whether it comes out of the till or out of inventory.
+   *
+   * An upgrade hands over seats that might not have sold. Pricing Club seats as
+   * Lower Bowl ones hands over real money. Same gesture, different cheque, and
+   * the marketer should be told which.
+   */
+  isCash: boolean;
 }
 
 /** Does paying for this cart take the fan past their next milestone? */
@@ -331,17 +353,30 @@ export function milestone(cart: CartFacts): Milestone | null {
     return null;
   }
 
-  const upgradeTo = upgradeTarget(cart.section);
   const paidPerSeat = cart.cart_value_usd / cart.seats;
-  const costUsd = upgradeTo
-    ? Math.round(Math.max(0, SECTION_PRICE[upgradeTo] - paidPerSeat) * cart.seats * 100) / 100
-    : 0;
+  const up = upgradeTarget(cart.section);
+  const down = tierBelow(cart.section);
+
+  // Move them up if there's anywhere to go. If they're already at the top,
+  // they keep their seats and pay the tier below's price.
+  const reward: MilestoneReward | null = up
+    ? { kind: "upgrade", section: up, appliesTo: "this_cart" }
+    : down
+      ? { kind: "priced_down", section: down, appliesTo: "next_purchase" }
+      : null;
+  if (!reward) return null;
+
+  const costUsd =
+    reward.kind === "upgrade"
+      ? Math.round(Math.max(0, SECTION_PRICE[reward.section] - paidPerSeat) * cart.seats * 100) / 100
+      : Math.round(Math.max(0, paidPerSeat - SECTION_PRICE[reward.section]) * cart.seats * 100) / 100;
 
   return {
     at: Math.floor(after / TICKETS_PER_UPGRADE) * TICKETS_PER_UPGRADE,
     ticketsAfter: after,
-    upgradeTo,
+    reward,
     costUsd,
+    isCash: reward.kind === "priced_down",
   };
 }
 
@@ -361,13 +396,13 @@ export function operatorNote(cart: CartFacts): string | null {
   // The milestone comes first, because it's the actionable one — it's a thing
   // this fan has earned rather than a thing we've decided about them.
   const m = milestone(cart);
-  if (m && m.upgradeTo) {
+  if (m?.reward.kind === "upgrade") {
     notes.push(
-      `This cart takes them past ${m.at} tickets, which earns a free upgrade — all ${cart.seats} seats to the ${m.upgradeTo}, about $${m.costUsd.toFixed(2)}. The whole party moves or nobody does; they're going together. Say so, it turns a nag into a reason to finish.`,
+      `This cart takes them past ${m.at} tickets, so the seats they're buying get upgraded — all ${cart.seats} of them to the ${m.reward.section}, on this order. Costs about $${m.costUsd.toFixed(2)} in seats that might have sold, no cash. The whole party moves or nobody does; they're going together.`,
     );
   } else if (m) {
     notes.push(
-      `This cart takes them past ${m.at} tickets, but they're already in the ${cart.section} — there's nothing to upgrade them to. Worth thanking them some other way, and that one's yours to pick.`,
+      `This cart takes them past ${m.at} tickets, but they're already in the ${cart.section} — nowhere to move them. So the reward lands on their NEXT purchase: ${cart.section} seats at ${m.reward.section} prices. Nothing comes off this cart, and on an order this size it'd be worth about $${m.costUsd.toFixed(2)} when they claim it — real cash, not spare seats.`,
     );
   }
 

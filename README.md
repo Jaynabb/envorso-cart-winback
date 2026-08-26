@@ -49,9 +49,19 @@ fifteenth ticket buying two seats isn't going to sit in the Club while whoever t
 with stays in the Upper Deck. So it's priced for every seat — $84 for `C-1001`'s pair —
 and the email says they'll be sitting together.
 
-**And it can't always be paid.** `C-1004` is already in the Club. There's nothing above
-it, so the card says so and hands the thank-you back to the marketer rather than
-promising something the club can't honour.
+**If they're already in the best seats, the reward moves to their next order.**
+`C-1004` is in the Club — nowhere to move him — so nothing comes off the cart in front of
+him. Next time he buys, those Club seats are his at Lower Bowl prices, worth about $222
+on an order this size.
+
+Deliberately not applied to the cart he's mid-way through. Re-pricing an order someone is
+already paying for is a different and messier thing than moving where they sit, and it
+hands cash back on a sale the club was making anyway.
+
+The two rewards come to roughly the same value — 12% of what `C-1001` spent to earn
+theirs, 16% of what `C-1004` spent. They just aren't the same *kind* of money, and the
+card says which: an upgrade gives away seats that might not have sold, a price cut gives
+away cash.
 
 That matters because it's the only thing the club gives its best fans. They're the ones
 who correctly get no win-back offer — they were coming back anyway — which leaves them

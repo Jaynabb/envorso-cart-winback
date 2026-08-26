@@ -40,11 +40,17 @@ function seatPhrase(cart: CartFacts): string {
  */
 function milestoneLine(cart: CartFacts): string {
   const m = milestone(cart);
-  // Nothing to promise if they're already in the best seats in the ground.
-  if (!m || !m.upgradeTo) return "";
+  if (!m) return "";
   const party =
     cart.seats === 1 ? "you" : cart.seats === 2 ? "both of you" : `all ${cart.seats} of you`;
-  return `\n\nAnd these take you to ${m.ticketsAfter} tickets with us. Every ${TICKETS_PER_UPGRADE} earns a free upgrade, so we'll move ${party} to the ${m.upgradeTo} for this match — same price, and you'll be sitting together.`;
+  const lead = `\n\nAnd these take you to ${m.ticketsAfter} tickets with us. Every ${TICKETS_PER_UPGRADE} earns something back`;
+
+  // Already in the best seats in the ground, so the thank-you is the price
+  // rather than the seat. Same gesture, said plainly.
+  if (m.reward.kind === "priced_down") {
+    return `${lead}. You're already in the best seats in the ground, so there's nowhere to move you — instead, next time you buy, your ${cart.section} seats are yours at ${m.reward.section} prices.`;
+  }
+  return `${lead} — and it lands on the tickets already in your cart. Finish up and ${party} move to the ${m.reward.section} for this match, at the price you're paying now. You'll be sitting together.`;
 }
 
 export function buildCopy(cart: CartFacts, offerId: string): SendCopy {
@@ -55,9 +61,11 @@ export function buildCopy(cart: CartFacts, offerId: string): SendCopy {
   switch (offerId) {
     case "reminder_only":
       return {
-        subject: milestone(cart)?.upgradeTo
-          ? "Your next seats earn you an upgrade"
-          : "Your Seawolves seats are still held",
+        subject: !milestone(cart)
+          ? "Your Seawolves seats are still held"
+          : milestone(cart)!.reward.kind === "upgrade"
+            ? "These seats come with an upgrade"
+            : "You're one order from a better price",
         email: `Hi,
 
 You left ${seats} in your cart. They're still there if you want them — nothing has been taken off the board yet.${milestoneLine(cart)}
@@ -66,9 +74,13 @@ Finish up here: [CART LINK]
 
 See you at the match,
 Seattle Seawolves`,
-        sms: milestone(cart)?.upgradeTo
-          ? `Your ${seats} are still held — and they take you to ${milestone(cart)!.ticketsAfter} tickets, which moves the whole party up to the ${milestone(cart)!.upgradeTo}. Finish up: [CART LINK]`
-          : `Your ${seats} for the Seawolves are still held. Finish up: [CART LINK]`,
+        sms: (() => {
+          const m = milestone(cart);
+          if (!m) return `Your ${seats} for the Seawolves are still held. Finish up: [CART LINK]`;
+          return m.reward.kind === "upgrade"
+            ? `Your ${seats} are still held — and they take you past ${m.at} tickets, so we'll move the whole party up to the ${m.reward.section} on this order. Finish up: [CART LINK]`
+            : `Your ${seats} are still held — and they take you past ${m.at} tickets, so your next order is ${cart.section} seats at ${m.reward.section} prices. Finish up: [CART LINK]`;
+        })(),
       };
 
     case "fee_waiver": {
