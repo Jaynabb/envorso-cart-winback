@@ -100,16 +100,19 @@ two hours, nothing. Two to 24 hours, a free reminder. After that, real offers.
 
 `C-1004` is the trap. Biggest number on the page. He's also a fan with forty tickets who
 bought nine days ago and walked away an hour ago — the most likely person here to finish
-on his own. Discounting him wastes money and insults him.
+on his own. Discounting him buys a sale the club already had, and teaches its most
+reliable buyer that walking away gets rewarded.
 
 ### What we offer, and what it costs
 
-Six options, fixed: nothing, a reminder, waive the fees, a free seat upgrade, 10% off,
-15% off. The agent picks one by name and can't make one up.
+Six options, fixed: nothing, a reminder, waive the booking fee, a free seat upgrade,
+10% off, 15% off. The agent picks one by name and can't make one up.
 
-The rule is to pick the smallest thing that could work, and if two would work, the
-cheaper one. Those aren't the same thing — waiving fees on four seats costs $24, while
-15% off that same cart costs $21.
+The booking fee is what checkout adds on top of the ticket price, 12% here. Waiving it
+feels smaller than a discount — but on a $140 cart it costs **$16.80**, while 10% off
+costs **$14**. Smaller doesn't mean cheaper.
+
+Pick the smallest thing that could work. If two would work, the cheaper one.
 
 Then price everything honestly, which changed the answers. **A free upgrade isn't free.**
 Move a fan from a $35 seat to a $53 one and the club gives up the $18 difference on a
@@ -145,9 +148,18 @@ editing. One club, one marketer, one screen.
 
 **1. An answer key, written before the model ran.** I decided what each of the five carts
 deserved, and why, before an agent saw the data. That way my judgement is the benchmark,
-instead of me reading its output and talking myself into agreeing. `scripts/eval.mts`
-scores it. It's at 100% right now. It needs me to have labelled the carts, so it stops
-working past the five I sat down and thought about.
+instead of me reading its output and talking myself into agreeing.
+
+`scripts/eval.mts` scores it, and the result splits in a way worth reporting honestly.
+**Which carts get an offer is identical every run — five out of five, repeatedly.** Which
+offer it picks moves around: always inside the range I said was reasonable, but matching
+my exact pick maybe a third of the time. That gap is the answer key being over-confident,
+not the agent being wrong. Choosing between 10% and 15% on those carts was a coin-flip I
+didn't have grounds for, and the eval shows me that rather than letting me believe the
+question was settled.
+
+It also needs me to have labelled the carts, so it stops working past the five I sat down
+and thought about.
 
 **2. Rules that check themselves.** Things you can verify with arithmetic on any day's
 carts: consent is never broken, nothing goes out under two hours and nothing costing

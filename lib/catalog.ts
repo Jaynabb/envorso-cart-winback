@@ -50,14 +50,20 @@ const SECTION_PRICE: Record<string, number> = {
   Club: 90,
 };
 
-/** Per-seat service fee, the thing a fee waiver waives. */
-const SERVICE_FEE_PER_SEAT = 6;
-
-/*
- * Also a lookup in production. Whether waiving it costs the club or costs
- * Envorso depends on who books the fee, which is a question for whoever owns
- * the P&L — flagged rather than assumed either way.
+/**
+ * The booking fee added at checkout, as a share of face value.
+ *
+ * A flat "$6 a seat" sat here first, which was another number I'd made up.
+ * Ticketing fees are normally a percentage — a fee that's 17% of an Upper Deck
+ * seat and 7% of a Club seat isn't a fee, it's an accident. 12% is the middle
+ * of the usual range and it scales with the ticket the way a real one does.
+ *
+ * Like the prices, this is a lookup in production: Envorso runs the checkout,
+ * so the exact number is theirs. And whether waiving it costs the club or costs
+ * Envorso depends on who books the fee — a question for whoever owns the P&L,
+ * flagged here rather than assumed either way.
  */
+const SERVICE_FEE_RATE = 0.12;
 
 /**
  * A note on what an upgrade costs, and why there are no probabilities here.
@@ -165,11 +171,11 @@ export const CATALOG: CatalogEntry[] = [
   {
     id: "fee_waiver",
     kind: "fee_waiver",
-    label: "Service fees waived",
+    label: "Booking fee waived",
     description:
-      "Waive the per-seat service fee. The smallest real offer there is — it reads as removing an annoyance rather than cutting the price of a ticket, so it doesn't reset what a fan thinks a seat costs.",
+      "Drop the booking fee added at checkout. The smallest real offer there is — it reads as removing an annoyance rather than cutting the price of a ticket, so it doesn't reset what a fan thinks a seat costs. Note it isn't automatically the cheapest: on a large party the fee can come to more than a straight discount would.",
     strength: 2,
-    cashCost: (c) => SERVICE_FEE_PER_SEAT * c.seats,
+    cashCost: (c) => round2(c.cart_value_usd * SERVICE_FEE_RATE),
     opportunityCost: () => 0,
     eligible: alwaysEligible,
   },
@@ -258,7 +264,7 @@ export function describeOffer(id: string, cart: CartFacts): string {
     return `${offer.label} — saves $${offer.cashCost(cart).toFixed(2)}`;
   }
   if (offer.id === "fee_waiver") {
-    return `${offer.label} — saves $${offer.cashCost(cart).toFixed(2)} on ${cart.seats} seat${cart.seats === 1 ? "" : "s"}`;
+    return `${offer.label} — saves $${offer.cashCost(cart).toFixed(2)}`;
   }
   return offer.label;
 }
