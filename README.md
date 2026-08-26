@@ -40,11 +40,6 @@ justify the second.
 here and never reaches an agent. Left the cart under two hours ago? Nothing yet, they
 might still be paying.
 
-That's the whole rules layer. There used to be six more — a 24-hour cooling-off window, a
-20%-of-cart spending cap, a loyalty threshold, a staleness ceiling, a suppression window
-and a 0–4 offer ladder. I swept every one of them against the carts and deleted the lot.
-[Why](#the-numbers-i-deleted).
-
 ### What a seat costs
 
 Every price in this README comes from these three numbers, and every one of those is read
@@ -149,41 +144,6 @@ produces an offer.
 
 ---
 
-### The numbers I deleted
-
-I had eleven thresholds. A booking-fee rate, a 20%-of-cart spending cap, a 24-hour
-cooling-off window, a loyal fan defined as 10 tickets inside 60 days, a staleness
-ceiling, a suppression window, an escalation price, a 0–4 strength ladder with a ceiling
-and a floor for each read.
-
-None of them came from the data, because the data is five carts with a value, seats, a
-section, a ticket history and an opt-in flag. I'd written them, and written reasons
-underneath that sounded like sources.
-
-So I swept them — every threshold, over its plausible range, against the five carts:
-
-```
-share cap        0.2   →  identical decisions anywhere from 0.10 to 0.50
-staleness        14d   →  nearest flip at 3 days
-loyal fan     10t/60d  →  changes nothing at any value from 3 tickets to 30
-```
-
-The cap I'd have defended hardest turned out not to matter at all, and once upgrades were
-priced honestly it was catching something that could no longer happen. The loyalty rule
-never fired once — the analyst had already read those fans off their actual history, and
-the threshold was re-deriving that conclusion from a number I made up.
-
-**Deleting all eleven changed one decision out of five, and made it cheaper.** Two
-survive: don't interrupt someone who may be at the checkout, and every 15 tickets earns a
-step. The first is a claim about what a fan is doing rather than arithmetic. The second
-is what the club gives back, and it's the reason the loyal fan can be left alone without
-being ignored.
-
-What's left doing the work is the thing that was in the data all along — what a seat
-costs.
-
----
-
 ## Section A — Written analysis
 
 ### Which carts get an offer
@@ -242,9 +202,8 @@ has to be argued for on the card where a marketer can see the gap.
 **No sending.** The agent proposes; the marketer copies ready-made email and SMS text.
 There's no CRM, and a sender would be the least useful thing in the sprint.
 
-**No spend budget, and no thresholds.** Every offer is approved one at a time with its
-price showing, so nobody can overspend by accident — and every threshold I tried to keep
-turned out to be a number I'd invented.
+**No spend budget.** Every offer is approved one at a time with its price showing, so
+nobody can overspend by accident.
 
 **Nothing personalised past the segment**, no multi-team version, no self-serve rules.
 
@@ -286,13 +245,12 @@ when the read says a reminder won't move them, and the price the model claimed m
 the price we calculate. **These are what would actually run every morning.** Sixty
 generated carts pass them.
 
-There used to be one more, and cutting it is the sharper lesson. I made "take the
-cheapest that works" an invariant — and it fired on both offers in a completely healthy
-run, because the strategist is allowed to spend more when it can say why. An alarm that
-goes off on permitted behaviour teaches people to ignore the alarms, which is the one
-thing this list cannot afford. It's now printed on the card instead: *$7.00 dearer than
-the cheapest thing that would work here*, next to the reason it was worth it. A
-judgement call belongs in front of a person, not in a threshold.
+**Only things that are always wrong belong on that list.** "Take the cheapest thing that
+works" isn't one of them — the strategist may spend more when it can say why, so an
+invariant would fire on a perfectly healthy run, and an alarm that goes off on permitted
+behaviour teaches people to ignore the alarms. That one is printed on the card instead:
+*$7.00 dearer than the cheapest thing that would work here*, next to the reason it was
+worth it. A judgement call belongs in front of a person.
 
 **3. A holdout — the day this actually sends.** Redemption rate lies: it counts the fans
 who were coming back anyway. So a tenth of the fans we'd have contacted should get no
