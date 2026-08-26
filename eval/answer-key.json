@@ -4,7 +4,8 @@
     "Offer strength tracks how unlikely the fan was to return unaided. Never cart value, never loyalty.",
     "Take the cheapest tool that could plausibly work, where 'cheapest' is in dollars and nothing else. A free upgrade is not free: it hands over a seat someone else would likely have bought and only gives back the cheaper one it frees. Moving a fan from a $35 seat to a $53 one costs $18 a seat, which is why an upgrade is almost never the thrifty answer it sounds like.",
     "A discount costs its full face value in margin, because a ticket is perishable and the marginal cost of one more person in a seat is close to nothing.",
-    "Contact and cost are different decisions. A fan who was coming back anyway should not be spent money on — but a reminder costs nothing, so silence saves nothing either. If we can reach them and the cart is genuinely abandoned, they hear something; whether it costs anything is what the read decides."
+    "Contact and cost are different decisions. A fan who was coming back anyway should not be spent money on — but a reminder costs nothing, so silence saves nothing either. If we can reach them and the cart is genuinely abandoned, they hear something; whether it costs anything is what the read decides.",
+    "Discount depth is set by whether there is a history to read, not by how much we like the fan. A buyer who stopped gets the smaller lever first, because their track record is evidence. Someone who has never bought gets the deeper one, because a first purchase is acquisition and there is nothing cheaper to price them with."
   ],
   "carts": {
     "C-1001": {
@@ -24,12 +25,11 @@
         "unknown",
         "low"
       ],
-      "preferred_offer_id": "discount_10",
+      "preferred_offer_id": "discount_15",
       "acceptable_offer_ids": [
-        "discount_10",
         "discount_15"
       ],
-      "why": "Never purchased, so there's genuinely no history saying he comes back — the one cart here where a real offer is honest rather than lazy, and four seats of a brand new fan is the highest acquisition value in the set. The rule is the cheapest thing that plausibly works: 10% of $140 is $14, against $21 for 15%. An upgrade for four would give up ($53 - $35) x 4 = $72, so cash is far the cheaper way to win him. 15% is defensible on a fan we have no evidence about at all, which is why it stays in the band — but it needs a reason on the card, not a shrug."
+      "why": "Never purchased. That's the whole reason he gets the deepest offer, and it isn't generosity — a first purchase is the club buying a supporter, not discounting a $140 cart, and there is no history to price him with. 15% of $140 is $21, against $14 for 10%. An upgrade for four would hand over ($53 - $35) x 4 = $72, so cash is far the cheaper way to win him."
     },
     "C-1003": {
       "expected_outcome": "blocked",
@@ -54,10 +54,9 @@
       ],
       "preferred_offer_id": "discount_10",
       "acceptable_offer_ids": [
-        "discount_10",
-        "discount_15"
+        "discount_10"
       ],
-      "why": "One ticket, 300 days ago, cart cold for four days. The relationship is already gone, so the unaided return chance is near zero and a real offer is justified. A 10% discount costs $7. The upgrade is the tempting answer because it takes no cash — but moving two seats from Upper Deck to Lower Bowl hands over ($53 - $35) x 2 = $36, five times the discount. Cheapest tool that plausibly works means the money, not the seats."
+      "why": "One ticket, 300 days ago, cart cold for four days. The relationship is gone, so the unaided return chance is near zero and a real offer is justified — but he HAS a history. He knows what a ticket costs and chose not to buy, so 10% ($7) is the right first test of whether price is what's in the way. The upgrade is the tempting answer because it takes no cash, but moving two seats from Upper Deck to Lower Bowl hands over ($53 - $35) x 2 = $36, five times the discount."
     }
   }
 }

@@ -176,7 +176,7 @@ export const CATALOG: CatalogEntry[] = [
     kind: "upgrade",
     label: "Free seat upgrade",
     description:
-      "Move them up a section at the price they already had in the cart — the fan is told exactly which section, by name. Costs no cash, because it spends a seat that was likely going unsold, and it reads as being looked after rather than marked down. The right tool for winning back a fan who has drifted away.",
+      "Move them up a section at the price they already had in the cart — the fan is told exactly which section, by name. Takes no cash at the till, but the price shown is real: it hands over a better seat and takes back a cheaper one. Reads as being looked after rather than marked down, which is worth something — but it is usually the dearest thing on this menu, so it needs to beat the alternatives on the figure, not on the feeling.",
     tier: "paid",
     cashCost: () => 0,
     opportunityCost: (c) => {
@@ -198,22 +198,28 @@ export const CATALOG: CatalogEntry[] = [
     kind: "discount",
     label: "10% off the cart",
     description:
-      "Real money off. Only where there is genuine doubt the fan returns at all, and the cheaper tools above won't move them.",
+      "Real money off, for a fan who has bought before and stopped. There is a track record here — they know what a ticket is worth and they chose not to buy this time — so the smaller lever is the right first test of whether price is what's in the way.",
     tier: "paid",
     cashCost: (c) => round2(c.cart_value_usd * 0.1),
     opportunityCost: () => 0,
-    eligible: alwaysEligible,
+    eligible: (c) =>
+      c.lifetime_tickets > 0
+        ? { ok: true }
+        : { ok: false, why: "This fan has never bought a ticket — a first purchase is priced as acquisition, not as a discount on this cart." },
   },
   {
     id: "discount_15",
     kind: "discount",
     label: "15% off the cart",
     description:
-      "The deepest offer available. Reserved for a fan we have no evidence will ever come back on their own — a first-timer with no history, or someone long lapsed. Never for a regular buyer.",
+      "The deepest offer, and it is reserved for a fan who has never bought anything. Nothing here is being spent on this cart: a first purchase is the club buying a supporter it has no evidence about and no cheaper way to price. Never for someone with a history — they have already shown you what they do.",
     tier: "paid",
     cashCost: (c) => round2(c.cart_value_usd * 0.15),
     opportunityCost: () => 0,
-    eligible: alwaysEligible,
+    eligible: (c) =>
+      c.lifetime_tickets === 0
+        ? { ok: true }
+        : { ok: false, why: `This fan has bought ${c.lifetime_tickets} time${c.lifetime_tickets === 1 ? "" : "s"} before — there is a history to read, so the smaller discount is the right first test.` },
   },
 ];
 

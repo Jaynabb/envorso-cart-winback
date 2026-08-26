@@ -94,7 +94,7 @@ already paying for is a different and messier thing than moving where they sit, 
 hands cash back on a sale the club was making anyway.
 
 They aren't the same *kind* of money, and the card says which: an upgrade gives away
-seats that might not have sold, a price cut gives away cash.
+seats, a price cut gives away cash. Both are priced as money, because both are.
 
 That matters because it's the only thing the club gives its best fans. They're the ones
 who correctly get no win-back offer — they were coming back anyway — which leaves them
@@ -152,14 +152,14 @@ produces an offer.
 anyway, and the result can't tell you which: they buy, it looks like it worked, and you
 paid for a sale you already had.
 
-Ask instead: **would this fan have come back on their own?** The less likely that is, the
-more we'll give. Not the size of the cart, not how loyal they are.
+Ask instead: **would this fan have come back on their own?** The less likely, the more
+we'll give. Not the size of the cart, not how loyal they are.
 
 | cart | | what happens |
 |---|---|---|
 | `C-1004` | $540 Club, 40 tickets, left **1 hour ago** | nothing yet |
 | `C-1001` | 14 tickets, bought 21 days ago, left 3 hours ago | **reminder**, free |
-| `C-1002` | never bought, 4 seats, $140, 26 hours | **10% off** · 140 × 0.10 = **$14** |
+| `C-1002` | never bought, 4 seats, $140, 26 hours | **15% off** · 140 × 0.15 = **$21** |
 | `C-1005` | one ticket 300 days ago, $70, cold 4 days | **10% off** · 70 × 0.10 = **$7** |
 | `C-1003` | no email opt-in | **blocked** |
 
@@ -177,12 +177,12 @@ competes with the win-back logic. Both held fans cross one here.
 ### What we offer, and what it costs
 
 Five fixed options: nothing, a reminder, a free seat upgrade, 10% off, 15% off — picked
-by name, never invented, and built only from what the data contains. No fees or perks,
+by name, never invented, built only from what the data contains. No fees or perks,
 because there are none in the data.
 
-Take the cheapest one that could plausibly work, in dollars. That test needs stating in
-dollars because **a free upgrade isn't free** — it hands over a seat someone else would
-have bought and only gives back the cheaper one it frees:
+Take the cheapest one that could plausibly work, in dollars — and it has to be dollars,
+because **a free upgrade isn't free.** It hands over a seat someone else would have
+bought and only gives back the cheaper one it frees:
 
 ```
 C-1005 — 2 Upper Deck seats, $70 cart
@@ -196,6 +196,12 @@ C-1005 — 2 Upper Deck seats, $70 cart
 The gentler-sounding offer costs five times the blunt one. The agents get this menu
 sorted cheapest first with the real figure on every line; going dearer is allowed, and
 has to be argued for on the card where a marketer can see the gap.
+
+**What separates the two discounts is whether there's a history to read.** A fan who
+bought before and stopped gets 10%: they know what a ticket costs and chose not to buy,
+so the smaller lever tests whether price is what's in the way. Someone who has never
+bought gets 15% — a first purchase is the club buying a supporter, not discounting a
+cart, and there's no cheaper way to price a fan you have no evidence about.
 
 ### What I didn't build
 
@@ -220,11 +226,17 @@ deserved, and why, before an agent saw the data. That way my judgement is the be
 instead of me reading its output and talking myself into agreeing.
 
 `scripts/eval.mts` scores it, and the result splits in a way worth reporting honestly.
-**Which carts get an offer is identical every run — five out of five, every time.** Which
-offer it picks moves around inside the range I said was reasonable, matching my exact
-pick between a third and two thirds of the time. That gap isn't the agent being wrong;
-it's my key claiming a precision I don't have. Choosing between 10% and 15% on those
-carts was a coin-flip.
+**It now scores five out of five on every measure, on every run.** Which carts get an
+offer, which offer they get, and how the fan was read — all stable.
+
+That's worth being suspicious of rather than pleased about, and the honest reading is
+that the agents have less room than they did. Which offer a cart gets used to move around
+inside the band I'd called reasonable, matching my exact pick somewhere between a third
+and two thirds of the time. That wasn't the agent being unreliable; it was my catalog
+offering two discount depths with nothing to separate them, so the choice really was a
+coin-flip. Now depth follows whether the fan has a purchase history, the coin-flip is
+gone, and what's left for the agents to get wrong is the part that actually needs
+judgement — reading the fan, and deciding whether to spend at all.
 
 **And more than once the key has been the thing that was wrong.** It preferred a free
 upgrade for `C-1005` until upgrades were priced properly and turned out to cost five

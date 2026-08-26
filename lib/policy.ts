@@ -282,7 +282,7 @@ export function operatorNote(cart: CartFacts): string | null {
   const m = milestone(cart);
   if (m?.reward.kind === "upgrade") {
     notes.push(
-      `This cart takes them past ${m.at} tickets, so the seats they're buying get upgraded — all ${cart.seats} of them to the ${m.reward.section}, on this order. Costs about $${m.costUsd.toFixed(2)} in seats that might have sold, no cash. The whole party moves or nobody does; they're going together.`,
+      `This cart takes them past ${m.at} tickets, so the seats they're buying get upgraded — all ${cart.seats} of them to the ${m.reward.section}, on this order. No cash, but $${m.costUsd.toFixed(2)} of better seats handed over. The whole party moves or nobody does; they're going together.`,
     );
   } else if (m) {
     notes.push(
