@@ -93,15 +93,8 @@ Deliberately not applied to the cart he's mid-way through. Re-pricing an order s
 already paying for is a different and messier thing than moving where they sit, and it
 hands cash back on a sale the club was making anyway.
 
-The two come to roughly the same share of what each fan spent to earn them:
-
-```
-C-1001   15 tickets at $48  =  $720 spent   →   $84 back   =  12%
-C-1004   15 tickets at $90  = $1,350 spent  →  $222 back   =  16%
-```
-
-They aren't the same *kind* of money, though, and the card says which: an upgrade gives
-away seats that might not have sold, a price cut gives away cash.
+They aren't the same *kind* of money, and the card says which: an upgrade gives away
+seats that might not have sold, a price cut gives away cash.
 
 That matters because it's the only thing the club gives its best fans. They're the ones
 who correctly get no win-back offer — they were coming back anyway — which leaves them

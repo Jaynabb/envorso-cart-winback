@@ -310,8 +310,10 @@ export const TICKETS_PER_UPGRADE = 15;
  * messier thing than moving where they sit, and it means the club is handing
  * back cash on a sale it was already making.
  *
- * Both come to roughly the same value — about 12-16% of what a fan spent to
- * earn it. They just arrive at different times.
+ * Both are bounded the same way: one tier gap, never a jump to the top. That's
+ * what makes it work for both sides — the fan gets something real, and the
+ * club's cost can't run away with how far a fan happens to sit from the best
+ * seats in the ground.
  */
 export type MilestoneReward =
   | { kind: "upgrade"; section: string; appliesTo: "this_cart" }
