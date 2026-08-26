@@ -5,13 +5,8 @@ import {
   type FanRead,
   type Review,
 } from "./schema.ts";
-import { describeOffer, eligibleOffers, getOffer, totalCost } from "./catalog.ts";
-import {
-  LOYAL_RECENCY_DAYS,
-  LOYAL_TICKETS,
-  MAX_STRENGTH_BY_RETURN_LIKELIHOOD,
-  affordable,
-} from "./policy.ts";
+import { describeOffer, menuFor, getOffer, totalCost, cheapestPaid } from "./catalog.ts";
+import { allowedTier } from "./policy.ts";
 import { runAgent, ESCALATION_MODEL, type AgentResult } from "./agent.ts";
 
 /**
@@ -45,17 +40,14 @@ How strong an offer can be tracks one thing: how unlikely the fan was to come ba
 
 So the questions are:
 - If we sent this fan nothing at all, would they have finished the cart anyway? If probably yes, then anything with a COST attached is money burned, and the verdict is veto. But read that carefully: it applies to offers that cost something. A plain reminder costs nothing, so "they were coming back anyway" is not a reason to veto one — a fan who got interrupted three hours ago is helped by a nudge, and the club pays nothing for it.
-- Is this the weakest tool that plausibly works? If something smaller would do, adjust to it and name it. Weak and cheap are different axes — strength is what it teaches the fan, cost is the dollars — so check you aren't recommending something weaker that costs more. Waiving fees on a large party costs more than a deep discount on the same cart.
+- Is this the cheapest thing that plausibly works? The alternatives below are priced, and the cheapest is marked. If a cheaper one would do the same job, adjust to it and name it. If the proposal is dearer than the cheapest and the reason doesn't say what this fan needs that the cheaper one wouldn't do, that alone is grounds to adjust.
 - Is it enough to work at all? If the fan has no reason to return and the proposal is a nudge with nothing behind it, adjust upward and name what should go instead.
-- Does this insult anyone? A fan with ${LOYAL_TICKETS}+ tickets who bought inside ${LOYAL_RECENCY_DAYS} days is the club's core. Marking their tickets down is both wasted margin and a strange message to send someone who already shows up.
 
 ## Two mistakes to avoid making yourself
 
 **"Unproven" is not a reason to spend less.** A fan with no purchase history is not a bad bet — they are the one fan on the page you have *no evidence about*, and no evidence they return without us is exactly the condition that justifies a real offer. A club this size grows by winning first purchases. If your objection amounts to "they haven't earned it yet", you are applying a different rule than the one above.
 
-**Read the price line before you talk about margin.** An upgrade costs the club no cash at all — it spends a seat that was probably going unsold. Objecting to an upgrade on the grounds that it burns margin is a factual error, not a judgement. Cash is cash; seats are not.
-
-Two different things are being measured and they do not move together. "Smaller" and "larger" below describe how generous an offer *reads to the fan* — how likely it is to teach them that walking away pays. The cash figure is what it *costs the club*. A smaller-reading offer can easily cost more money: waiving fees on four seats costs real dollars, and moving two fans into empty better seats costs none. Each alternative below shows both, so check the cash line before you economise, or you will trade down into something more expensive.
+**Read the price line before you argue about generosity.** How an offer sounds and what it costs are different things, and they often disagree. A free upgrade sounds like the gentle option and is usually the dearest thing available, because the better seat would probably have sold. Every figure below is the real number. Use them.
 
 ## Verdicts
 
@@ -78,24 +70,27 @@ export function buildReviewerUserPrompt(
   cart: CartFacts,
   read: FanRead,
   offerId: string,
-  maxStrength?: number,
-  minStrength?: number,
 ): string {
   const offer = getOffer(offerId);
-  const ceiling = Math.min(
-    MAX_STRENGTH_BY_RETURN_LIKELIHOOD[read.return_likelihood],
-    maxStrength ?? Infinity,
-  );
-  // The whole menu they could have picked, not just the cheaper half — the
-  // reviewer has to be able to say "this is too thin" as well as "too much".
-  const alternatives = eligibleOffers(cart)
-    .filter(
-      (o) =>
-        o.strength <= ceiling && o.id !== offerId && affordable(totalCost(o, cart), cart.cart_value_usd),
-    )
+  const tier = allowedTier(read.return_likelihood);
+  const tiers: ("free" | "paid")[] = tier === null ? ["free", "paid"] : [tier];
+  const cheapest = cheapestPaid(cart);
+
+  // The proposal STAYS IN this list, marked.
+  //
+  // It used to be filtered out, and that quietly lied to the reviewer. When the
+  // strategist correctly picked the cheapest option, removing it left a list
+  // that started at the second-cheapest — and the reviewer read that as the
+  // floor. Its own words: "the proposed 10% discount isn't even offered here;
+  // the cheapest available option, 15% off, costs only $3.50 more." It talked
+  // itself into spending more on both carts in the same run, and the reasoning
+  // was sound given the list it was shown. The list was wrong.
+  //
+  // The whole menu, in price order, with the proposal in its true place.
+  const alternatives = tiers
+    .flatMap((t) => menuFor(cart, t))
     .map((o) => {
       const price = `$${totalCost(o, cart).toFixed(2)}`;
-      const dir = o.strength < (offer?.strength ?? 99) ? "reads smaller" : "reads larger";
       const delta = totalCost(o, cart) - (offer ? totalCost(offer, cart) : 0);
       const cashNote =
         Math.abs(delta) < 0.005
@@ -103,7 +98,13 @@ export function buildReviewerUserPrompt(
           : delta > 0
             ? `costs $${delta.toFixed(2)} MORE`
             : `costs $${Math.abs(delta).toFixed(2)} less`;
-      return `  - ${o.id} — ${describeOffer(o.id, cart)} (${price}; ${dir}, ${cashNote})`;
+      const marks = [
+        cheapest && o.id === cheapest.id ? "cheapest that costs money" : "",
+        o.id === offerId ? "THIS IS THE PROPOSAL" : "",
+      ].filter(Boolean);
+      const mark = marks.length ? ` — ${marks.join("; ")}` : "";
+      const cash = o.id === offerId ? "" : `; ${cashNote}`;
+      return `  - ${o.id} — ${describeOffer(o.id, cart)} (${price}${cash})${mark}`;
     })
     .join("\n");
 
@@ -132,13 +133,8 @@ The cart: ${cart.seats} seat${cart.seats === 1 ? "" : "s"} in ${cart.section}, $
 Proposed: **${described}**
 Costs the club: ${price}
 
-${alternatives ? `Everything else available for this cart, at this read:\n${alternatives}` : "There is nothing else available for this cart."}
+${`Everything available for this cart, cheapest first:\n${alternatives}`}
 
-${
-    (minStrength ?? 0) > 0
-      ? "\n**Whether to make contact at all is already settled for this cart** — the club sends every fan who left something this recently a free reminder, and that isn't yours to overturn. Your job here is narrower: is THIS the right thing to send them? Approve it, or adjust it to something else on the list. Veto isn't available.\n"
-      : ""
-  }
 Should this reach the fan?`;
 }
 
@@ -147,8 +143,6 @@ export async function reviewOffer(
   read: FanRead,
   offerId: string,
   escalate: boolean,
-  maxStrength?: number,
-  minStrength?: number,
 ): Promise<AgentResult<Review>> {
   return runAgent({
     name: "reviewer",
@@ -156,7 +150,7 @@ export async function reviewOffer(
     toolDescription:
       "Decide whether this offer should reach the fan. Veto if the fan was returning anyway; adjust to a named replacement if the proposal is either too generous or too thin to work.",
     system: buildReviewerSystemPrompt(),
-    user: buildReviewerUserPrompt(cart, read, offerId, maxStrength, minStrength),
+    user: buildReviewerUserPrompt(cart, read, offerId),
     schema: ReviewSchema,
     model: escalate ? (process.env.REVIEWER_ESCALATION_MODEL ?? ESCALATION_MODEL) : undefined,
   });

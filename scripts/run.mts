@@ -20,14 +20,11 @@ const flag = (name: string) => {
 
 const cartsPath = flag("carts") ?? "data/carts.json";
 const savePath = flag("save");
-const holdoutPercent = Number(flag("holdout") ?? 0);
 
 const carts = JSON.parse(readFileSync(cartsPath, "utf8"));
-console.log(
-  `\nrunning ${carts.length} carts from ${cartsPath}${holdoutPercent ? ` (${holdoutPercent}% held back as a control group)` : ""}...\n`,
-);
+console.log(`\nrunning ${carts.length} carts from ${cartsPath}...\n`);
 
-const result = await runPipeline(carts, { holdoutPercent });
+const result = await runPipeline(carts);
 
 const ICON = { offer: "OFFER  ", hold: "HOLD   ", blocked: "BLOCKED" } as const;
 

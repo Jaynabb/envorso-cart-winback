@@ -89,13 +89,21 @@ export interface CatalogEntry {
   /** Rendered into the strategist's prompt. Says when this is the right tool. */
   description: string;
   /**
-   * How strong an offer this is, 0 = nothing at all.
+   * Whether this offer costs the club anything.
    *
-   * This exists so the monotonicity invariant in policy.ts is checkable
-   * arithmetic rather than a judgement call: a fan who is likely to return on
-   * their own must not receive a higher rank than one who isn't.
+   * Deliberately a yes/no rather than a rank. There was a 0-4 "strength" scale
+   * here, and it was the wrong idea twice over: it invented an ordering that
+   * nothing in the data supports, and it competed with the one ordering that
+   * IS real — what each offer costs in dollars. Rank told me an upgrade was
+   * gentler than a discount; the prices told me it was five times dearer. The
+   * prices were right.
+   *
+   * So the only distinction drawn here is the one that matters for the rule
+   * this system exists to enforce: don't spend money on a fan who was coming
+   * back anyway. Free or not free. Which of the paid ones to use is a cost
+   * comparison, and the numbers are right there.
    */
-  strength: number;
+  tier: "none" | "free" | "paid";
   /**
    * Cash off the club's top line.
    *
@@ -112,12 +120,14 @@ export interface CatalogEntry {
    * that had a real chance of selling — and it frees the cheaper one, which has
    * a smaller chance of selling. The honest number is the difference:
    *
-   *   better price x P(better sells) - cheaper price x P(cheaper sells)
+   *   price of the seat handed over  -  price of the seat freed up
    *
-   * On these fill rates that's about $19 a seat, which makes a two-seat upgrade
-   * five times more expensive than a 10% discount on a $70 cart. The reviewer
-   * agent had been saying exactly this and being overruled by a menu that
-   * printed "$0" next to it.
+   * We price it as if the better seat would certainly have sold. That's the
+   * cautious end — if it wouldn't have sold, the upgrade costs less than this
+   * says — and it's the reason upgrades rarely win. On a $70 Upper Deck cart
+   * the gap is $36, against $7 for a 10% discount. The reviewer agent had been
+   * saying exactly this for hours and being overruled by a menu that printed
+   * "$0" next to it.
    */
   opportunityCost(cart: CartFacts): number;
   eligible(cart: CartFacts): Eligibility;
@@ -144,8 +154,8 @@ export const CATALOG: CatalogEntry[] = [
     kind: "none",
     label: "No offer",
     description:
-      "Send this fan nothing. The right answer whenever they were going to come back without us — an offer there is money spent on a sale we already had, and it teaches a reliable buyer that walking away gets rewarded.",
-    strength: 0,
+      "Send this fan nothing at all.",
+    tier: "none",
     cashCost: () => 0,
     opportunityCost: () => 0,
     eligible: alwaysEligible,
@@ -156,7 +166,7 @@ export const CATALOG: CatalogEntry[] = [
     label: "Reminder, no offer",
     description:
       "A plain nudge that the cart is still there. No money, no perk. For a fan who probably just got interrupted, where the useful thing is the reminder itself rather than a reason to feel clever about waiting.",
-    strength: 1,
+    tier: "free",
     cashCost: () => 0,
     opportunityCost: () => 0,
     eligible: alwaysEligible,
@@ -167,7 +177,7 @@ export const CATALOG: CatalogEntry[] = [
     label: "Free seat upgrade",
     description:
       "Move them up a section at the price they already had in the cart — the fan is told exactly which section, by name. Costs no cash, because it spends a seat that was likely going unsold, and it reads as being looked after rather than marked down. The right tool for winning back a fan who has drifted away.",
-    strength: 2,
+    tier: "paid",
     cashCost: () => 0,
     opportunityCost: (c) => {
       const target = upgradeTarget(c.section);
@@ -189,7 +199,7 @@ export const CATALOG: CatalogEntry[] = [
     label: "10% off the cart",
     description:
       "Real money off. Only where there is genuine doubt the fan returns at all, and the cheaper tools above won't move them.",
-    strength: 3,
+    tier: "paid",
     cashCost: (c) => round2(c.cart_value_usd * 0.1),
     opportunityCost: () => 0,
     eligible: alwaysEligible,
@@ -200,7 +210,7 @@ export const CATALOG: CatalogEntry[] = [
     label: "15% off the cart",
     description:
       "The deepest offer available. Reserved for a fan we have no evidence will ever come back on their own — a first-timer with no history, or someone long lapsed. Never for a regular buyer.",
-    strength: 4,
+    tier: "paid",
     cashCost: (c) => round2(c.cart_value_usd * 0.15),
     opportunityCost: () => 0,
     eligible: alwaysEligible,
@@ -246,4 +256,24 @@ export function describeOffer(id: string, cart: CartFacts): string {
     return `${offer.label} — saves $${offer.cashCost(cart).toFixed(2)}`;
   }
   return offer.label;
+}
+
+/**
+ * The offers available to this cart in one tier, cheapest first.
+ *
+ * Sorting is the whole point. "Take the cheapest tool that could plausibly
+ * work" used to be a sentence in a prompt that the agents had to be trusted to
+ * follow; now the menu they're handed arrives in that order with the price on
+ * every line, so choosing the dearest one is a visible act they have to justify
+ * rather than an accident.
+ */
+export function menuFor(cart: CartFacts, tier: "free" | "paid"): CatalogEntry[] {
+  return CATALOG.filter((o) => o.tier === tier && o.eligible(cart).ok).sort(
+    (a, b) => totalCost(a, cart) - totalCost(b, cart),
+  );
+}
+
+/** The cheapest offer that costs money — the default any dearer choice is measured against. */
+export function cheapestPaid(cart: CartFacts): CatalogEntry | undefined {
+  return menuFor(cart, "paid")[0];
 }

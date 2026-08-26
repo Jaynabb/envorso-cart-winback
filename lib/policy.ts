@@ -1,5 +1,13 @@
 import type { CartFacts, Decision, FanRead } from "./schema.ts";
-import { getOffer, totalCost, upgradeTarget, tierBelow, SECTION_PRICE } from "./catalog.ts";
+import {
+  getOffer,
+  totalCost,
+  upgradeTarget,
+  tierBelow,
+  cheapestPaid,
+  describeOffer,
+  SECTION_PRICE,
+} from "./catalog.ts";
 
 /**
  * The parts of this system that are rules, not judgement.
@@ -16,162 +24,78 @@ import { getOffer, totalCost, upgradeTarget, tierBelow, SECTION_PRICE } from "./
  * front of a fan.
  */
 
-/* ---------- the numbers, and why they are what they are ------------- */
+/* ---------- the numbers, and why there are so few ------------------- */
 
 /**
- * Under this, the cart isn't abandoned — it's open. They may be at the checkout
- * right now, and "you left something behind" while someone is typing their card
- * number is the worst message we could send.
+ * There are two chosen numbers in this entire system, and this is one of them.
+ *
+ * Everything else is either read off the data (what a seat in each section
+ * costs, which is cart value over seats) or decided by an agent and shown to a
+ * person for approval.
+ *
+ * That wasn't true a few days ago. There was a 24-hour cooling-off window, a
+ * 20%-of-cart spending cap, a "loyal fan" defined as 10 tickets inside 60 days,
+ * a 14-day staleness ceiling, a 7-day suppression window and a 0-4 strength
+ * ladder. I swept all of them against the five carts. The cap changed no
+ * decision anywhere between 10% and 50%. The loyalty rule changed nothing at
+ * any value from 3 tickets to 30. Most of them were re-deriving, from numbers I
+ * had invented, conclusions the analyst had already reached from the fan's
+ * actual history — and the rest were patches for a bug that no longer existed,
+ * back when an upgrade was priced at zero.
+ *
+ * Removing all of them changed one decision out of five, and made it cheaper.
+ *
+ * This one survives because it isn't arithmetic, it's a claim about what the
+ * fan is doing right now: someone who wandered off forty minutes ago may be
+ * typing their card number, and "you left something behind" is the worst
+ * message they could receive. Two hours is a judgement, and three would be
+ * defensible too. That the rule exists is the part that matters.
  */
 export const TOO_FRESH_HOURS = 2;
 
 /**
- * Under this, don't spend money — but do feel free to say something.
+ * The other one, and it isn't a guard rail — it's what the club gives back.
  *
- * This started as a rule that held everything under a day, which was wrong in a
- * way worth writing down. The reason not to contact a fan inside 24 hours is
- * that most of them are coming back anyway, so anything we GIVE them is margin
- * spent on a sale we already had. That argument is about cost. A plain reminder
- * costs nothing, and someone who got interrupted three hours ago is exactly who
- * a reminder helps.
- *
- * So the window doesn't block contact. It caps what contact is allowed to cost.
+ * Every 15 tickets earns a free seat upgrade. See milestone() below for why a
+ * separate reward track exists at all; the short version is that a loyal fan
+ * correctly gets no win-back offer, and "correctly gets nothing" is a hard
+ * thing to explain to someone sitting next to a stranger with 15% off.
  */
-export const COOLING_OFF_HOURS = 24;
+export const TICKETS_PER_UPGRADE = 15;
 
 /**
- * Inside the cooling-off window the offer is exactly a reminder — no more, and
- * also no less.
+ * Which tier of offer a fan qualifies for, given how likely they were to come
+ * back without us.
  *
- * The ceiling is the incrementality rule: don't spend money on someone who was
- * coming back anyway. The floor is a business decision, and it's the club's to
- * make rather than the model's. Asked to choose, the strategist argued for
- * silence — "a reminder costs nothing, but it's also unnecessary contact to
- * someone who was already coming back" — which is a perfectly reasonable
- * position and not the one the club takes. A fan who walked away from a
- * half-finished purchase three hours ago most likely got interrupted, a nudge
- * is a service to them, and it costs nothing to send.
+ * This is the spine of the whole system, and it used to be a 0-4 ladder with
+ * ceilings and floors per likelihood. It reduces to this: if they were coming
+ * back anyway, don't spend money. That is the entire idea, and expressing it as
+ * a rank invited a rank-vs-price confusion that cost real money — the reviewer
+ * once traded a $0 offer for a $12 one to "economise", because the ladder said
+ * the second was smaller.
  *
- * Written as a rule rather than argued into the prompt. Nudging a model until
- * it agrees with you isn't a policy, it's a coincidence you'll have to
- * rediscover every time the prompt changes.
+ * `null` means the agent decides. A medium read is genuine uncertainty, and
+ * resolving it with a threshold would be inventing precision I don't have; the
+ * strategist makes the call and writes down why, the reviewer argues, and a
+ * marketer sees both.
  */
-export const COOLING_OFF_MAX_STRENGTH = 1;
-export const COOLING_OFF_MIN_STRENGTH = 1;
-
-/** Past this, the fixture is stale and the moment has gone. Nudging reads as noise. */
-export const STALE_CEILING_HOURS = 24 * 14;
-
-/** Don't contact the same fan twice in a week, whatever the agent thinks. */
-export const SUPPRESSION_DAYS = 7;
-
-/** A fan is "loyal" at this much history — the group a discount insults. */
-export const LOYAL_TICKETS = 10;
-export const LOYAL_RECENCY_DAYS = 60;
+export function allowedTier(
+  likelihood: FanRead["return_likelihood"],
+): "free" | "paid" | null {
+  if (likelihood === "high") return "free";
+  if (likelihood === "medium") return null;
+  return "paid";
+}
 
 /**
- * Ceilings on what the club gives away.
+ * Does this proposal deserve the better reviewer model?
  *
- * Expressed as a share of what's at stake rather than as flat dollars, because
- * a flat number is a number somebody made up. $60 was mine, and it was wrong in
- * a way worth remembering: `C-1003`'s cart is $58, so a $60 offer would have
- * passed a $60 ceiling while being worth more than the cart it was rescuing.
- *
- * A share can't do that, and it scales without anyone editing a constant — the
- * same rule holds for five carts a day and five hundred.
- *
- * Counts cash AND revenue handed over as seats, because a seat given to someone
- * who would have paid for it is as gone as a dollar discounted.
+ * This was a $15 threshold. It's now the question the tier already answers:
+ * spend more on checking when there is money on the line, and don't when the
+ * offer is free. Cheaper to run and one less number to defend.
  */
-
-/** Never give away more than a fifth of the cart you're trying to rescue. */
-export const MAX_SHARE_OF_CART = 0.2;
-
-/*
- * There is deliberately no daily spend budget.
- *
- * Every offer in this system is approved one at a time by a person, with its
- * price on the card. A marketer cannot overspend by accident — they would have
- * to click through each one individually — so a daily cap guards against a
- * failure mode the approval gate already prevents. It's a control for an
- * autonomous system, and this isn't one yet.
- *
- * The first thing to add when this starts sending without a human in front of
- * it. Not before.
- */
-
-/**
- * Over this, a second opinion is worth paying for. The reviewer runs on the
- * cheap model by default and escalates past this line — capability where the
- * money is, rather than uniformly.
- */
-export const ESCALATION_COST_USD = 15;
-
-/**
- * The strongest offer allowed, given how likely the fan was to return anyway.
- *
- * This is the spine of the whole system expressed as arithmetic. Strength comes
- * from the catalog: 0 nothing, 1 reminder, 2 upgrade, 3-4 cash.
- * A fan who is probably coming back gets a reminder at most. Money is reserved
- * for the cases where we have no reason to believe they return without it.
- */
-export const MAX_STRENGTH_BY_RETURN_LIKELIHOOD: Record<FanRead["return_likelihood"], number> = {
-  high: 1,
-  medium: 2,
-  low: 4,
-  unknown: 4,
-};
-
-/**
- * The floor, and why there has to be one.
- *
- * The ceiling above only bounds over-spending, which quietly assumes the only
- * expensive mistake is generosity. It isn't. If we have decided to contact a fan
- * who has no reason to come back on their own, a nudge that costs nothing is a
- * touch spent for nothing — we used the one message they'll open and gave them
- * no reason to act.
- *
- * This applies only once the system has decided to make an offer at all. Sending
- * nothing is always available and is often right; what isn't available is
- * sending something too thin to work and calling it caution.
- */
-export const MIN_STRENGTH_BY_RETURN_LIKELIHOOD: Record<FanRead["return_likelihood"], number> = {
-  high: 0,
-  medium: 0,
-  low: 2,
-  unknown: 2,
-};
-
-/**
- * The share of qualified carts that deliberately get nothing.
- *
- * This is the only honest way to answer "are these offers any good". Redemption
- * rate on its own is a vanity metric: some of the fans who convert after an
- * offer were going to convert anyway, and counting them makes any campaign look
- * like it works. Holding a slice back and comparing gives you the number that
- * matters — how many extra carts got finished BECAUSE of the offer.
- *
- * Applied after a cart qualifies, never before, so the two groups are alike in
- * every way except whether we contacted them.
- */
-export const HOLDOUT_PERCENT = 10;
-
-/**
- * Stable assignment: the same fan is always on the same side.
- *
- * Deterministic on the fan id rather than random per run, because a fan who
- * flips between groups day to day is in neither, and the comparison stops
- * meaning anything. FNV-1a — small, dependency-free, and spreads well enough
- * for a bucket decision.
- */
-export function isHoldout(fanId: string, percent: number = HOLDOUT_PERCENT): boolean {
-  if (percent <= 0) return false;
-  let hash = 0x811c9dc5;
-  for (let i = 0; i < fanId.length; i++) {
-    hash ^= fanId.charCodeAt(i);
-    hash = Math.imul(hash, 0x01000193) >>> 0;
-  }
-  return hash % 100 < percent;
+export function needsEscalation(cost: number): boolean {
+  return cost > 0;
 }
 
 /* ---------- the gate ------------------------------------------------ */
@@ -179,14 +103,7 @@ export function isHoldout(fanId: string, percent: number = HOLDOUT_PERCENT): boo
 export type GateResult =
   | {
       pass: true;
-      /**
-       * A ceiling this cart carries regardless of what the analyst reads, used
-       * for the cooling-off window. Undefined means the read alone decides.
-       */
-      maxStrength?: number;
-      /** A floor this cart carries — what the club always sends in this case. */
-      minStrength?: number;
-      /** Shown on the card so the limit isn't invisible. */
+      /** Shown on the card when there's something the marketer should know. */
       note?: string;
     }
   | { pass: false; outcome: "blocked" | "hold"; reason: string };
@@ -195,10 +112,7 @@ export type GateResult =
  * Runs before any model. Order matters: consent first, because it's the one
  * that isn't a business preference.
  */
-export function gate(
-  cart: CartFacts,
-  opts: { lastContactedDaysAgo?: number | null; holdoutPercent?: number } = {},
-): GateResult {
+export function gate(cart: CartFacts): GateResult {
   if (!cart.email_opt_in) {
     return {
       pass: false,
@@ -217,63 +131,7 @@ export function gate(
     };
   }
 
-  if (cart.abandoned_hours_ago > STALE_CEILING_HOURS) {
-    return {
-      pass: false,
-      outcome: "hold",
-      reason: `Abandoned ${Math.round(cart.abandoned_hours_ago / 24)} days ago. Too cold to read as a follow-up; this belongs in a campaign, not a cart nudge.`,
-    };
-  }
-
-  const contacted = opts.lastContactedDaysAgo;
-  if (contacted !== null && contacted !== undefined && contacted < SUPPRESSION_DAYS) {
-    return {
-      pass: false,
-      outcome: "hold",
-      reason: `Already contacted ${contacted} day${contacted === 1 ? "" : "s"} ago. Suppressed for ${SUPPRESSION_DAYS} days so we don't stack messages on one fan.`,
-    };
-  }
-
-  // Last, so the held-back group is drawn only from carts we would otherwise
-  // have contacted. Off by default: the sample run is scoring the agent's
-  // judgement, and a cart pulled out for measurement would muddy that.
-  if (opts.holdoutPercent && isHoldout(cart.fan_id, opts.holdoutPercent)) {
-    return {
-      pass: false,
-      outcome: "hold",
-      reason: `Held back on purpose — this fan is in the ${opts.holdoutPercent}% control group. They get nothing today so we can tell later how many carts the offers actually rescued, rather than counting fans who were coming back anyway.`,
-    };
-  }
-
-  if (cart.abandoned_hours_ago < COOLING_OFF_HOURS) {
-    return {
-      pass: true,
-      maxStrength: COOLING_OFF_MAX_STRENGTH,
-      minStrength: COOLING_OFF_MIN_STRENGTH,
-      note: `Left ${cart.abandoned_hours_ago} hours ago — too fresh to spend money on, most fans this recent come back by themselves. A reminder is free though.`,
-    };
-  }
-
   return { pass: true };
-}
-
-/**
- * Offers this cart is actually allowed to receive.
- *
- * Every invariant needs a matching enforcement point or it's a report rather
- * than a guard rail — the per-cart cap was caught by checkInvariants three runs
- * in a row while the pipeline cheerfully let the offer through, because nothing
- * upstream had removed it from the menu. Filtering here means the strategist is
- * never shown an option it isn't permitted to pick, and the invariant goes back
- * to being the backstop it was meant to be.
- */
-export function affordable(cost: number, cartValue: number): boolean {
-  return cost <= cartValue * MAX_SHARE_OF_CART;
-}
-
-/** Does this proposal need the better reviewer model? */
-export function needsEscalation(cost: number, strength: number): boolean {
-  return cost > ESCALATION_COST_USD || strength >= 4;
 }
 
 /**
@@ -294,7 +152,6 @@ export function needsEscalation(cost: number, strength: number): boolean {
  * "Your cart is still there" is a nag. "These two seats take you to fifteen
  * tickets, and that earns you an upgrade" is news.
  */
-export const TICKETS_PER_UPGRADE = 15;
 
 /**
  * How the milestone gets paid, and — just as important — when.
@@ -392,6 +249,31 @@ export function milestone(cart: CartFacts): Milestone | null {
  * should get looked after in a currency that isn't money, and that decision
  * belongs to a person, not to this pipeline. So: put it in front of them.
  */
+/**
+ * Not the cheapest option — said to the marketer, not raised as a violation.
+ *
+ * This started life as an invariant and fired on both offers in a healthy run,
+ * because the strategist is explicitly allowed to spend more when it can say
+ * why. An alarm that goes off on permitted behaviour trains people to ignore
+ * the alarms, which is the one thing the invariant list cannot afford.
+ *
+ * So it isn't a rule, it's a disclosure: the person approving sees the gap in
+ * dollars next to the reason it was worth it, and decides. That's the honest
+ * home for a judgement call — a human, not a threshold.
+ */
+export function premiumOverCheapest(
+  cart: CartFacts,
+  offerId: string,
+): string | null {
+  const offer = getOffer(offerId);
+  if (!offer || offer.tier !== "paid") return null;
+  const cheapest = cheapestPaid(cart);
+  if (!cheapest || cheapest.id === offer.id) return null;
+  const gap = totalCost(offer, cart) - totalCost(cheapest, cart);
+  if (gap <= 0) return null;
+  return `$${gap.toFixed(2)} dearer than the cheapest thing that would work here (${describeOffer(cheapest.id, cart)}, $${totalCost(cheapest, cart).toFixed(2)}). Their reason for the difference is above.`;
+}
+
 export function operatorNote(cart: CartFacts): string | null {
   const notes: string[] = [];
 
@@ -408,19 +290,7 @@ export function operatorNote(cart: CartFacts): string | null {
     );
   }
 
-  const loyal =
-    cart.lifetime_tickets >= LOYAL_TICKETS &&
-    cart.last_purchase_days_ago !== null &&
-    cart.last_purchase_days_ago <= LOYAL_RECENCY_DAYS;
-  if (!loyal) return notes.length ? notes.join(" ") : null;
-
-  // Worded to hold up whether this fan is being left alone or sent a free
-  // reminder. An earlier version said "leaving them alone is right", which
-  // started contradicting the card it sat on the moment reminders existed.
-  notes.push(
-    `${cart.lifetime_tickets} tickets, last bought ${cart.last_purchase_days_ago} days ago — the club's core. Don't discount them: they were coming back anyway.`,
-  );
-  return notes.join(" ");
+  return notes.length ? notes.join(" ") : null;
 }
 
 /* ---------- the invariants ------------------------------------------ */
@@ -459,53 +329,28 @@ export function checkInvariants(cart: CartFacts, decision: Decision): string[] {
     problems.push(`CATALOG: ${offer.label} isn't available here — ${eligibility.why}`);
   }
 
-  // The spine, as arithmetic — bounded on both sides.
+  // The spine, stated the only way it can be checked without inventing a scale:
+  // did we spend money on someone who was coming back without us?
   if (decision.read) {
     const likelihood = decision.read.return_likelihood;
-    const gated = gate(cart);
-    const ceiling = Math.min(
-      MAX_STRENGTH_BY_RETURN_LIKELIHOOD[likelihood],
-      gated.pass ? (gated.maxStrength ?? Infinity) : Infinity,
-    );
-    // Never demand more than the ceiling permits. A lapsed fan who left five
-    // hours ago would otherwise trip both rules at once: the read says a nudge
-    // alone won't move them, and the cooling-off window says a nudge is all
-    // they may have. That isn't a token offer, it's a sequence — a reminder
-    // today, and something with weight behind it tomorrow if they still
-    // haven't come back.
-    const floor = Math.min(MIN_STRENGTH_BY_RETURN_LIKELIHOOD[likelihood], ceiling);
+    const tier = allowedTier(likelihood);
+    const cost = totalCost(offer, cart);
 
-    if (offer.strength > ceiling) {
+    if (tier === "free" && offer.tier === "paid") {
       problems.push(
-        `INCREMENTALITY: ${offer.label} was offered to a fan read as "${likelihood}" to return unaided. The strongest offer allowed at that likelihood is ${ceiling}; this one is ${offer.strength}. We are paying for a sale we may already have had.`,
+        `INCREMENTALITY: ${offer.label} costs $${cost.toFixed(2)} and went to a fan read as likely to return without us. That is money spent on a sale we already had.`,
       );
     }
 
-    if (offer.strength < floor) {
+    // The other direction, which the old ladder needed a made-up floor to
+    // catch: we decided this fan won't come back on their own, then sent them
+    // the one message they'll open with nothing in it.
+    if (tier === "paid" && offer.id === "reminder_only") {
       problems.push(
-        `TOKEN OFFER: ${offer.label} was sent to a fan read as "${likelihood}" to return unaided — someone with no reason to come back by themselves. At that likelihood an offer needs to be at least ${floor} to be worth making; this one is ${offer.strength}. Either make it worth making or hold and send nothing.`,
+        `TOKEN OFFER: a bare reminder went to a fan read as "${likelihood}" to return unaided. Either give them a reason to come back or hold and send nothing.`,
       );
     }
-  }
 
-  // The C-1004 guard, stated as a rule rather than left to taste.
-  const isLoyal =
-    cart.lifetime_tickets >= LOYAL_TICKETS &&
-    cart.last_purchase_days_ago !== null &&
-    cart.last_purchase_days_ago <= LOYAL_RECENCY_DAYS;
-  if (isLoyal && offer.kind === "discount") {
-    problems.push(
-      `LOYALTY: cash discount offered to a fan with ${cart.lifetime_tickets} lifetime tickets who bought ${cart.last_purchase_days_ago} days ago. Discounting the core teaches them that walking away pays.`,
-    );
-  }
-
-  const cost = totalCost(offer, cart);
-  const ceiling = cart.cart_value_usd * MAX_SHARE_OF_CART;
-  if (cost > ceiling) {
-    const share = Math.round((cost / cart.cart_value_usd) * 100);
-    problems.push(
-      `CAP: $${cost.toFixed(2)} is ${share}% of a $${cart.cart_value_usd.toFixed(2)} cart. The ceiling is ${Math.round(MAX_SHARE_OF_CART * 100)}% — $${ceiling.toFixed(2)} here.`,
-    );
   }
 
   // The model asserting a number we can compute ourselves.

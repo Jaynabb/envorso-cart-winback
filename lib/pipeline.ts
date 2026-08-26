@@ -6,12 +6,11 @@ import {
 import { CATALOG, getOffer, describeOffer, totalCost } from "./catalog.ts";
 import {
   gate,
-  affordable,
   operatorNote,
+  premiumOverCheapest,
   needsEscalation,
   checkInvariants,
-  MAX_STRENGTH_BY_RETURN_LIKELIHOOD,
-  MIN_STRENGTH_BY_RETURN_LIKELIHOOD,
+  allowedTier,
 } from "./policy.ts";
 import { readFan } from "./analyst.ts";
 import { proposeOffer } from "./strategist.ts";
@@ -71,21 +70,24 @@ function hold(cart: CartFacts, headline: string, extra: Partial<Decision> = {}):
   };
 }
 
-export interface RunOptions {
-  /** Share of qualified carts held back to measure lift. Off by default. */
-  holdoutPercent?: number;
-}
+/**
+ * Nothing here yet.
+ *
+ * A holdout percentage used to live in this type, and it was a control for a
+ * system that doesn't exist: this pipeline hands a marketer text to paste, so
+ * there is no send to withhold. Holding a slice back is still the right way to
+ * find out whether the offers do anything — it's the answer in the README —
+ * but it belongs in whatever eventually does the sending, not in a demo that
+ * pretends to run an experiment it can't run.
+ */
+export interface RunOptions {}
 
 async function decideOne(
   cart: CartFacts,
   opts: RunOptions = {},
 ): Promise<{ decision: Decision; usage: Usage }> {
   // [0] Deterministic gate. Costs nothing, cannot hallucinate, runs first.
-  const gated = gate(cart, { holdoutPercent: opts.holdoutPercent });
-  // A cart can pass the gate and still carry a ceiling — inside the cooling-off
-  // window a reminder is allowed and money isn't.
-  const maxStrength = gated.pass ? gated.maxStrength : undefined;
-  const minStrength = gated.pass ? gated.minStrength : undefined;
+  const gated = gate(cart);
   const gateNote = gated.pass ? gated.note : undefined;
   if (!gated.pass) {
     return {
@@ -117,7 +119,7 @@ async function decideOne(
   const read = readResult.value;
 
   // [2] Strategist — given that read, what (if anything) do we give them?
-  const proposalResult = await proposeOffer(cart, read, maxStrength, minStrength);
+  const proposalResult = await proposeOffer(cart, read);
   if (!proposalResult.ok) {
     return {
       usage: sumUsage([readResult.usage, proposalResult.usage]),
@@ -125,20 +127,30 @@ async function decideOne(
     };
   }
   let proposal = proposalResult.value;
+  const tier = allowedTier(read.return_likelihood);
 
-  // Policy beats preference. Where the club has decided a fan always hears
-  // something, a model choosing silence doesn't get to overrule that — it gets
-  // moved up to the floor, and the card says so. Stated in the prompt AND
-  // enforced here, because a rule that lives only in a prompt is a suggestion.
-  const floorOffer =
-    (minStrength ?? 0) > 0 && getOffer(proposal.offer_id)!.strength < minStrength!
-      ? CATALOG.find((o) => o.strength === minStrength && o.eligible(cart).ok)
-      : undefined;
-  if (floorOffer) {
-    proposal = { ...proposal, offer_id: floorOffer.id, claimed_cost_usd: totalCost(floorOffer, cart) };
+  // The club's rule, and the one place a model's choice gets overruled.
+  //
+  // Silence is a legitimate answer when nothing affordable would work. It is
+  // NOT the answer for a fan who was simply coming back on their own: they left
+  // a half-finished purchase, they most likely got interrupted, and a reminder
+  // costs the club nothing to send. Asked to choose, the strategist argued for
+  // silence — "unnecessary contact to someone who was already coming back" —
+  // which is reasonable and is not the call the club makes.
+  //
+  // Written here rather than argued into the prompt. Nudging a model until it
+  // agrees with you isn't a policy, it's a coincidence you rediscover every
+  // time the prompt changes.
+  if (proposal.offer_id === "no_offer" && tier === "free") {
+    proposal = {
+      ...proposal,
+      offer_id: "reminder_only",
+      claimed_cost_usd: 0,
+      reason: `${proposal.reason} (Club policy: a fan who left a cart this recently always hears something. A reminder is free, so there is nothing to save by staying quiet.)`,
+    };
   }
 
-  // The null decision needs no review — there is nothing to protect against.
+  // Nothing affordable would work. That's a real answer and needs no review.
   if (proposal.offer_id === "no_offer") {
     return {
       usage: sumUsage([readResult.usage, proposalResult.usage]),
@@ -146,12 +158,14 @@ async function decideOne(
     };
   }
 
+  // The one structural check left: an offer that costs money must not reach a
+  // fan the analyst read as coming back on their own. Everything else the
+  // strategist could get wrong is a judgement a person reviews.
   const proposed = getOffer(proposal.offer_id);
   if (
     !proposed ||
     !proposed.eligible(cart).ok ||
-    !affordable(totalCost(proposed, cart), cart.cart_value_usd) ||
-    proposed.strength > (maxStrength ?? Infinity)
+    (tier === "free" && proposed.tier === "paid")
   ) {
     return {
       usage: sumUsage([readResult.usage, proposalResult.usage]),
@@ -164,15 +178,8 @@ async function decideOne(
   }
 
   // [3] Reviewer — independent, and paid for properly when cash is at stake.
-  const escalate = needsEscalation(totalCost(proposed, cart), proposed.strength);
-  const reviewResult = await reviewOffer(
-    cart,
-    read,
-    proposal.offer_id,
-    escalate,
-    maxStrength,
-    minStrength,
-  );
+  const escalate = needsEscalation(totalCost(proposed, cart));
+  const reviewResult = await reviewOffer(cart, read, proposal.offer_id, escalate);
   if (!reviewResult.ok) {
     return {
       usage: sumUsage([readResult.usage, proposalResult.usage, reviewResult.usage]),
@@ -185,11 +192,7 @@ async function decideOne(
   const review = reviewResult.value;
   const usage = sumUsage([readResult.usage, proposalResult.usage, reviewResult.usage]);
 
-  // A veto below a policy floor isn't a veto, it's a disagreement with the
-  // club. The reviewer decides whether THIS is the right thing to send; it
-  // doesn't decide whether the club talks to its own fans. Its objection still
-  // reaches the marketer, who can reject the card by hand.
-  if (review.verdict === "veto" && (minStrength ?? 0) === 0) {
+  if (review.verdict === "veto") {
     return {
       usage,
       decision: hold(cart, review.objection, { read, proposal, review }),
@@ -206,20 +209,12 @@ async function decideOne(
     const replacement = review.replacement_offer_id
       ? getOffer(review.replacement_offer_id)
       : undefined;
-    // Bounded on both sides. Validating only the ceiling let a reviewer whittle
-    // an offer below the point of sending it — found on a 60-cart run, where a
-    // fan with no reason to return got a bare reminder. Sending nothing is
-    // always allowed; sending something too thin to work is not.
-    const strength = replacement?.strength ?? -1;
+    // The replacement has to clear the same bar as the original, or "adjust"
+    // becomes a way to smuggle in an offer nobody validated. Sending nothing is
+    // always allowed; spending money on a fan who was coming back is not.
     const valid =
       replacement &&
-      affordable(totalCost(replacement, cart), cart.cart_value_usd) &&
-      strength <= Math.min(
-        MAX_STRENGTH_BY_RETURN_LIKELIHOOD[read.return_likelihood],
-        maxStrength ?? Infinity,
-      ) &&
-      (strength >= MIN_STRENGTH_BY_RETURN_LIKELIHOOD[read.return_likelihood] ||
-        replacement.id === "no_offer") &&
+      (replacement.id === "no_offer" || tier !== "free" || replacement.tier === "free") &&
       replacement.id !== proposed.id;
 
     if (!replacement || !replacement.eligible(cart).ok || !valid) {
@@ -250,7 +245,10 @@ async function decideOne(
     proposal,
     review,
     gate_reason: null,
-    operator_note: [gateNote, operatorNote(cart)].filter(Boolean).join(" ") || null,
+    operator_note:
+      [gateNote, premiumOverCheapest(cart, finalId), operatorNote(cart)]
+        .filter(Boolean)
+        .join(" ") || null,
     violations: [],
   };
   decision.violations = checkInvariants(cart, decision);

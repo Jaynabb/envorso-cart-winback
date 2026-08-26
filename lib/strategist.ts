@@ -4,8 +4,8 @@ import {
   type FanRead,
   type OfferProposal,
 } from "./schema.ts";
-import { describeOffer, eligibleOffers, totalCost } from "./catalog.ts";
-import { MAX_STRENGTH_BY_RETURN_LIKELIHOOD, affordable } from "./policy.ts";
+import { describeOffer, menuFor, totalCost } from "./catalog.ts";
+import { allowedTier } from "./policy.ts";
 import { runAgent, type AgentResult } from "./agent.ts";
 
 /**
@@ -16,8 +16,9 @@ import { runAgent, type AgentResult } from "./agent.ts";
  * offer the club doesn't sell, because there is no field in which to write one.
  *
  * Unlike the analyst it does see money, and that's deliberate: choosing between
- * a fee waiver and an upgrade is partly an economic call. What the prompt does
- * not let it do is treat a bigger cart as a reason for a bigger offer.
+ * an upgrade and a discount is an economic call and the prices decide it. What
+ * the prompt does not let it do is treat a bigger cart as a reason for a bigger
+ * offer.
  */
 
 export function buildStrategistSystemPrompt(): string {
@@ -45,42 +46,36 @@ Worked example — a regular buyer who walked away from a cart three hours ago: 
 
 ## Choosing, when something is warranted
 
-Restraint is the default, not the goal. Take the **weakest** offer that could plausibly work — and notice the words "could plausibly work", because an offer too thin to move anyone is its own kind of failure. It burns the one message this fan will read and gives them nothing to act on.
+**The menu arrives cheapest first. Take the first one that could plausibly work.**
 
-**Weakest and cheapest are two different things, and both matter.** Strength is what an offer teaches the fan about what a ticket is worth — money off resets that, waiving a fee doesn't. Cost is the dollar figure next to it. They do not move together: waiving fees on four seats costs more than fifteen percent off the same cart. So among the options that would all plausibly work, take the weakest one — and where two are equally plausible, take the one that costs less. Never pay more for a weaker offer without saying why it's worth it.
+That ordering is in dollars, not in how an offer sounds. An upgrade sounds gentler than money off and is usually the most expensive thing on the page, because the better seat would probably have sold. Trust the figures, not the wording.
+
+You may pick a dearer one. What you may not do is pick it quietly: if you skip past a cheaper option, the first thing your reason must say is what this fan needs that the cheaper one wouldn't do. "Give them a bit more" is not that.
+
+Restraint is the default, not the goal — an offer too thin to move anyone is its own kind of failure. It burns the one message this fan will read and gives them nothing to act on.
 
 Worked example — a fan read as lapsed with a low chance of returning unaided: a bare reminder is not a serious answer. They have already shown you a year of not coming back; being reminded is not new information. If the read says they won't return on their own, give them an actual reason to.
 
 The same goes for "unknown". A first-time buyer with no history is not a safe bet you should spend little on — they are the one fan on the page you have *no* evidence about, and the definition above says to treat that as low. Winning a first purchase is how a club with a small fan base grows, so this is where a real offer is most defensible, not least.
 
-Prefer spending inventory over spending cash. An upgrade into a seat that was going unsold costs the club close to nothing at the till and reads as being looked after rather than being marked down. But inventory scales badly with party size — gifting two better seats is cheap, gifting six of the best ones is not, so for larger parties a bounded cash discount is often the more prudent bet.
-
 ## Your reason
 
-Say why this offer suits **this read**. Reference what the analyst found — the history, the likelihood, the flags. A reason that only mentions the cart value is a reason that broke the one rule above.
+Say why this offer suits **this read** — and if you didn't take the cheapest, say that first. Reference what the analyst found — the history, the likelihood, the flags. A reason that only mentions the cart value is a reason that broke the one rule above.
 
 **Two or three sentences.** This lands on a card a marketer reads at a glance before deciding, not in a report. If it doesn't fit on a card it won't get read, and an unread reason is the same as no reason.
 
 Call the propose_offer tool exactly once.`;
 }
 
-export function buildStrategistUserPrompt(
-  cart: CartFacts,
-  read: FanRead,
-  maxStrength?: number,
-  minStrength?: number,
-): string {
-  const ceiling = Math.min(
-    MAX_STRENGTH_BY_RETURN_LIKELIHOOD[read.return_likelihood],
-    maxStrength ?? Infinity,
-  );
-  const menu = eligibleOffers(cart)
-    .filter(
-      (o) =>
-        o.strength <= ceiling &&
-        o.strength >= (minStrength ?? 0) &&
-        affordable(totalCost(o, cart), cart.cart_value_usd),
-    )
+export function buildStrategistUserPrompt(cart: CartFacts, read: FanRead): string {
+  const tier = allowedTier(read.return_likelihood);
+  // A "medium" read is genuine uncertainty, so the agent is shown both tiers
+  // and has to make the call in the open rather than have a threshold make it
+  // silently. Everything else is decided by the read.
+  const tiers: ("free" | "paid")[] = tier === null ? ["free", "paid"] : [tier];
+
+  const menu = tiers
+    .flatMap((t) => menuFor(cart, t))
     .map((o) => {
       // One number, stated flatly. An earlier version said "no cash, but..."
       // next to the figure for an upgrade, and the reviewer read the words and
@@ -101,6 +96,13 @@ export function buildStrategistUserPrompt(
     ? read.risk_flags.map((f) => `  - ${f}`).join("\n")
     : "  (none)";
 
+  const tierNote =
+    tier === "free"
+      ? "\nThis fan was read as likely to finish without us, so nothing that costs money is on the menu. That isn't a budget — it's the one rule. Anything with a price on it would be buying a sale the club already had.\n"
+      : tier === "paid"
+        ? "\nThis fan was read as unlikely to come back on their own, so a bare reminder isn't on the menu — they have already shown you that being reminded isn't what's missing. Give them a reason, or say so and the marketer holds.\n"
+        : "\nThis read is genuinely uncertain, so both kinds are on the menu. The call is yours to make and to justify.\n";
+
   return `The analyst's read of this fan:
 
   Segment: ${read.segment}
@@ -111,23 +113,16 @@ ${flags}
 
 The cart: ${cart.seats} seat${cart.seats === 1 ? "" : "s"} in ${cart.section}, $${cart.cart_value_usd.toFixed(2)}, abandoned ${cart.abandoned_hours_ago} hours ago.
 
-Offers available for this cart, given that read:
+Offers available for this cart, **cheapest first**:
 
 ${menu}
-
-${
-    (minStrength ?? 0) > 0
-      ? "\n**Sending nothing is not available for this cart.** Club policy is that a fan who left a cart this recently always hears something, because a reminder is free and they most likely just got interrupted. Pick from the menu above.\n"
-      : ""
-  }
+${tierNote}
 Pick one by id. Report its cost exactly as listed above.`;
 }
 
 export async function proposeOffer(
   cart: CartFacts,
   read: FanRead,
-  maxStrength?: number,
-  minStrength?: number,
 ): Promise<AgentResult<OfferProposal>> {
   return runAgent({
     name: "strategist",
@@ -135,7 +130,7 @@ export async function proposeOffer(
     toolDescription:
       "Propose one offer from the menu by id, or no_offer. Report the cost exactly as the menu lists it.",
     system: buildStrategistSystemPrompt(),
-    user: buildStrategistUserPrompt(cart, read, maxStrength, minStrength),
+    user: buildStrategistUserPrompt(cart, read),
     schema: OfferProposalSchema,
   });
 }

@@ -36,9 +36,14 @@ Each step only sees what the step before it produced. That's on purpose. It stop
 model deciding both *who this fan is* and *what they deserve*, then bending the first to
 justify the second.
 
-**Rules first.** No email consent, no contact — `C-1003` stops here and never reaches an
-agent. Left the cart under two hours ago? Nothing, they might still be paying. Under 24
-hours? A free reminder, but no money.
+**Rules first, and there are only two.** No email consent, no contact — `C-1003` stops
+here and never reaches an agent. Left the cart under two hours ago? Nothing yet, they
+might still be paying.
+
+That's the whole rules layer. There used to be six more — a 24-hour cooling-off window, a
+20%-of-cart spending cap, a loyalty threshold, a staleness ceiling, a suppression window
+and a 0–4 offer ladder. I swept every one of them against the carts and deleted the lot.
+[Why](#the-numbers-i-deleted).
 
 ### What a seat costs
 
@@ -144,45 +149,80 @@ produces an offer.
 
 ---
 
+### The numbers I deleted
+
+I had eleven thresholds. A booking-fee rate, a 20%-of-cart spending cap, a 24-hour
+cooling-off window, a loyal fan defined as 10 tickets inside 60 days, a staleness
+ceiling, a suppression window, an escalation price, a 0–4 strength ladder with a ceiling
+and a floor for each read.
+
+None of them came from the data, because the data is five carts with a value, seats, a
+section, a ticket history and an opt-in flag. I'd written them, and written reasons
+underneath that sounded like sources.
+
+So I swept them — every threshold, over its plausible range, against the five carts:
+
+```
+share cap        0.2   →  identical decisions anywhere from 0.10 to 0.50
+staleness        14d   →  nearest flip at 3 days
+loyal fan     10t/60d  →  changes nothing at any value from 3 tickets to 30
+```
+
+The cap I'd have defended hardest turned out not to matter at all, and once upgrades were
+priced honestly it was catching something that could no longer happen. The loyalty rule
+never fired once — the analyst had already read those fans off their actual history, and
+the threshold was re-deriving that conclusion from a number I made up.
+
+**Deleting all eleven changed one decision out of five, and made it cheaper.** Two
+survive: don't interrupt someone who may be at the checkout, and every 15 tickets earns a
+step. The first is a claim about what a fan is doing rather than arithmetic. The second
+is what the club gives back, and it's the reason the loyal fan can be left alone without
+being ignored.
+
+What's left doing the work is the thing that was in the data all along — what a seat
+costs.
+
+---
+
 ## Section A — Written analysis
 
 ### Which carts get an offer
 
 "How do we win this cart back?" is the wrong question. The easiest ones were coming back
-anyway, and you can't tell from the result — they buy, it looks like it worked, and you
+anyway, and the result can't tell you which: they buy, it looks like it worked, and you
 paid for a sale you already had.
 
 Ask instead: **would this fan have come back on their own?** The less likely that is, the
 more we'll give. Not the size of the cart, not how loyal they are.
 
-How recently they left caps what we can *spend*, not whether we talk to them. Under two
-hours, nothing. Two to 24 hours, a free reminder. After that, real offers.
-
 | cart | | what happens |
 |---|---|---|
 | `C-1004` | $540 Club, 40 tickets, left **1 hour ago** | nothing yet |
 | `C-1001` | 14 tickets, bought 21 days ago, left 3 hours ago | **reminder**, free |
-| `C-1002` | never bought, 4 seats, $140, 26 hours | **15% off** · 140 × 0.15 = **$21** |
+| `C-1002` | never bought, 4 seats, $140, 26 hours | **10% off** · 140 × 0.10 = **$14** |
 | `C-1005` | one ticket 300 days ago, $70, cold 4 days | **10% off** · 70 × 0.10 = **$7** |
 | `C-1003` | no email opt-in | **blocked** |
 
+Contact and cost are separate: if we can reach them and the cart is genuinely abandoned
+they hear something, and the read decides whether it costs anything.
+
 `C-1004` is the trap — the biggest number on the page, and the likeliest person on it to
-finish by himself. Discounting him buys a sale the club already had.
+finish by himself.
 
 Leaving your best fans alone is right and looks awful — nothing for the man with forty
-tickets, 15% off for a stranger. So **every 15 tickets earns a step**: up a section, or
+tickets, money off for a stranger. So **every 15 tickets earns a step**, up a section or
 down a price tier if they're already at the top. It's owed rather than spent, so it never
 competes with the win-back logic. Both held fans cross one here.
 
 ### What we offer, and what it costs
 
 Five fixed options: nothing, a reminder, a free seat upgrade, 10% off, 15% off — picked
-by name, never invented. Each is built only from what the data contains: seats, sections,
-cart value. No fees or perks, because there are none in the data.
+by name, never invented, and built only from what the data contains. No fees or perks,
+because there are none in the data.
 
-Take the smallest thing that could work; if two would, the cheaper one. Those aren't the
-same test, because **a free upgrade isn't free** — it hands over a seat someone else
-would have bought and only gives back the cheaper one it frees:
+Take the cheapest one that could plausibly work, in dollars. That test needs stating in
+dollars because **a free upgrade isn't free** — it hands over a seat someone else would
+have bought and only gives back the cheaper one it frees:
 
 ```
 C-1005 — 2 Upper Deck seats, $70 cart
@@ -193,16 +233,18 @@ C-1005 — 2 Upper Deck seats, $70 cart
   10% off       $70 x 0.10  =            $7   club keeps $63
 ```
 
-So the gentler-sounding offer costs five times the blunt one. Nothing may cost more than
-a fifth of what it saves: 70 × 0.2 = $14 here, so the upgrade is off the menu entirely.
+The gentler-sounding offer costs five times the blunt one. The agents get this menu
+sorted cheapest first with the real figure on every line; going dearer is allowed, and
+has to be argued for on the card where a marketer can see the gap.
 
 ### What I didn't build
 
 **No sending.** The agent proposes; the marketer copies ready-made email and SMS text.
 There's no CRM, and a sender would be the least useful thing in the sprint.
 
-**No spend budget.** Every offer is approved one at a time with its price showing, so
-nobody overspends by accident. First thing to add the day this sends unwatched.
+**No spend budget, and no thresholds.** Every offer is approved one at a time with its
+price showing, so nobody can overspend by accident — and every threshold I tried to keep
+turned out to be a number I'd invented.
 
 **Nothing personalised past the segment**, no multi-team version, no self-serve rules.
 
@@ -237,16 +279,31 @@ It also needs me to have labelled the carts, so it stops working past the five I
 and thought about.
 
 **2. Rules that check themselves.** Things you can verify with arithmetic on any day's
-carts: consent is never broken, nothing goes out under two hours and nothing costing
-money under 24, the offer exists on the list, no offer costs more than a fifth of its
-cart, and the price the model claimed matches the price we calculate. **These are what
-would actually run every morning.** Sixty generated carts pass them.
+carts, with no labels at all: consent is never broken, nothing goes out under two hours,
+the offer exists on the list and is available for that cart, nothing that costs money
+reaches a fan the analyst read as coming back on their own, nobody gets a bare reminder
+when the read says a reminder won't move them, and the price the model claimed matches
+the price we calculate. **These are what would actually run every morning.** Sixty
+generated carts pass them.
 
-**3. Ten percent hear nothing, deliberately — but they still get what they've earned.**
-Redemption rate lies: it counts the fans who were coming back anyway. So a tenth of the
-fans we'd have contacted get no message, and the gap between the two groups is what the
-messages actually rescued. The same fan is always on the same side of that line, so the
-comparison holds week to week.
+There used to be one more, and cutting it is the sharper lesson. I made "take the
+cheapest that works" an invariant — and it fired on both offers in a completely healthy
+run, because the strategist is allowed to spend more when it can say why. An alarm that
+goes off on permitted behaviour teaches people to ignore the alarms, which is the one
+thing this list cannot afford. It's now printed on the card instead: *$7.00 dearer than
+the cheapest thing that would work here*, next to the reason it was worth it. A
+judgement call belongs in front of a person, not in a threshold.
+
+**3. A holdout — the day this actually sends.** Redemption rate lies: it counts the fans
+who were coming back anyway. So a tenth of the fans we'd have contacted should get no
+message, and the gap between the two groups is what the messages actually rescued. The
+same fan stays on the same side of that line so the comparison holds week to week.
+
+**This is a plan, not a feature, and I took the code out.** I had it running in the
+pipeline, and it was measuring an experiment that can't happen: nothing here sends. It
+hands a marketer text to paste. A holdout belongs in whatever eventually does the
+sending — shipping it now would only have let me claim a rigour the system doesn't have
+yet.
 
 **The line is drawn around contact, never around entitlement.** A fan in the control
 group who crosses 15 tickets still gets their upgrade when they check out — we just don't
@@ -355,10 +412,11 @@ with 4 seats means Upper Deck is $35. The $18 gap assumes the better seat would 
 sold, which is the realistic case since the Seawolves report selling out, and the
 cautious one, because if it wouldn't have sold the upgrade costs less.
 
-**What changed:** every offer is now priced properly, and nothing can cost more than a
-fifth of its cart. The agents stopped recommending upgrades. Their agreement with the
-answers I'd written by hand went from 0% to 100% — every argument we'd had traced back
-to a price that was wrong.
+**What changed:** every offer is now priced properly and the menu arrives cheapest
+first. The agents stopped recommending upgrades — not because a rule forbids it, but
+because an upgrade is almost never the cheapest thing that would work. Their agreement
+with the answers I'd written by hand went from 0% to 100%. Every argument we'd had traced
+back to a price that was wrong.
 
 ### 2 · The stranger about to get a better deal than a six-year fan
 
@@ -416,3 +474,39 @@ can't afford one — but now they lose on cost rather than on my phrasing.
 part of it. Three decisions changed that day because of how I'd worded something. None
 of them were the model being wrong. They were the model being right about what I'd
 actually said.
+
+### 4 · Where did these numbers come from?
+
+**What I asked:** the model had built me a policy layer — a spending cap, a cooling-off
+window, a loyalty threshold, an offer strength ladder. I asked one question about one of
+them: *where did the booking fee come from?*
+
+**What I found:** nowhere. The dataset has cart value, seats, section, ticket history and
+an opt-in flag. It has no fee. The model had invented a rate, built an offer on top of
+it, and that offer had become the *preferred* recommendation — so the headline of the
+demo was resting on a number that didn't exist. I asked the same question of the other
+ten thresholds and got the same answer ten more times.
+
+**What I did:** made it prove which ones mattered instead of arguing for them. Sweeping
+every threshold across its plausible range against the five carts took a few minutes and
+settled it: the spending cap changed nothing anywhere between 10% and 50% of cart, the
+loyalty rule changed nothing at any value from 3 tickets to 30, and most of the rest were
+re-deriving from invented numbers what the analyst had already read off the fan's real
+history.
+
+Deleting all eleven changed one decision out of five, and made it cheaper.
+
+**What it exposed on the way out:** with the ladder gone, the reviewer started overruling
+correct proposals — it upgraded both offers to the dearer option in the same run. The
+reason was mine again. Its list of alternatives excluded the offer being reviewed, so
+when the strategist correctly picked the cheapest one, the list it was shown started at
+the second-cheapest. In its own words: *"the proposed 10% discount isn't even offered
+here."* Sound reasoning, wrong list. Putting the proposal back into the list in its true
+place fixed both carts.
+
+**What I'd take from it:** a threshold and a fact aren't the same kind of claim, and I'd
+been treating them the same. *The club waits 24 hours before spending money* is a policy
+— it can't be false, only badly tuned. *The club charges a 12% booking fee* is a fact
+about the world, and mine was simply untrue. What made this fixable wasn't spotting the
+difference, it was testing it: I can't source my remaining number either, but I can show
+you it's the only one still doing any work.

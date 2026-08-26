@@ -1,10 +1,10 @@
 {
-  "_note": "Written by hand before any model was run against this data. The point of the ordering is that our judgement is the benchmark and the agent is scored against it — not the reverse. `acceptable_offer_ids` is a band rather than one id because more than one offer can be defensible; `preferred_offer_id` is the call we'd make ourselves.",
+  "_note": "Written by hand before any model was run against this data. The point of the ordering is that our judgement is the benchmark and the agent is scored against it — not the reverse. `acceptable_offer_ids` is a band rather than one id because more than one offer can be defensible; `preferred_offer_id` is the call we'd make ourselves. Revised twice since: once when upgrades were priced honestly and stopped being the cheap option, and once when every invented threshold was removed and 'cheapest that plausibly works' became the whole selection rule.",
   "_principles": [
     "Offer strength tracks how unlikely the fan was to return unaided. Never cart value, never loyalty.",
-    "Take the cheapest tool that could plausibly work — and price every tool honestly. A free upgrade is not free: it hands over a seat someone else would likely have bought and only gives back the cheaper one it frees. Moving a fan from a $35 seat to a $53 one costs $18 a seat, which makes upgrades the expensive option rather than the thrifty one.",
+    "Take the cheapest tool that could plausibly work, where 'cheapest' is in dollars and nothing else. A free upgrade is not free: it hands over a seat someone else would likely have bought and only gives back the cheaper one it frees. Moving a fan from a $35 seat to a $53 one costs $18 a seat, which is why an upgrade is almost never the thrifty answer it sounds like.",
     "A discount costs its full face value in margin, because a ticket is perishable and the marginal cost of one more person in a seat is close to nothing.",
-    "The cooling-off window is about money, not silence. Under 24 hours a fan may hear from us, but only in a way that costs nothing; under 2 hours they hear nothing at all, because they may still be at the checkout."
+    "Contact and cost are different decisions. A fan who was coming back anyway should not be spent money on — but a reminder costs nothing, so silence saves nothing either. If we can reach them and the cart is genuinely abandoned, they hear something; whether it costs anything is what the read decides."
   ],
   "carts": {
     "C-1001": {
@@ -16,7 +16,7 @@
       "acceptable_offer_ids": [
         "reminder_only"
       ],
-      "why": "Left 3 hours ago by a regular who bought 21 days ago — the likeliest fan here to finish on their own, so nothing that costs money should go near them. But a reminder costs nothing, and someone who walked away from a half-finished purchase this recently most likely got interrupted rather than changed their mind. The cooling-off window doesn't block contact, it caps what contact may cost: reminder, and nothing dearer, until tomorrow."
+      "why": "Left 3 hours ago by a regular who bought 21 days ago — the likeliest fan here to finish on their own, so nothing that costs money should go near them. But a reminder costs nothing, and someone who walked away from a half-finished purchase this recently most likely got interrupted rather than changed their mind. Silence saves the club nothing here; it just loses a sale it could have had."
     },
     "C-1002": {
       "expected_outcome": "offer",
@@ -24,13 +24,12 @@
         "unknown",
         "low"
       ],
-      "preferred_offer_id": "discount_15",
+      "preferred_offer_id": "discount_10",
       "acceptable_offer_ids": [
-        "discount_15",
         "discount_10",
-        "upgrade_one_tier"
+        "discount_15"
       ],
-      "why": "Never purchased, so there's genuinely no history saying he comes back — the one cart here where a real offer is honest rather than lazy, and four seats of a brand new fan is the highest acquisition value in the set. 15% of $140 is $21; 10% is $14. The deeper one is defensible on a fan we have no evidence about at all, and an upgrade for four would give up ($53 - $35) x 4 = $72, so cash is the cheaper way to win him."
+      "why": "Never purchased, so there's genuinely no history saying he comes back — the one cart here where a real offer is honest rather than lazy, and four seats of a brand new fan is the highest acquisition value in the set. The rule is the cheapest thing that plausibly works: 10% of $140 is $14, against $21 for 15%. An upgrade for four would give up ($53 - $35) x 4 = $72, so cash is far the cheaper way to win him. 15% is defensible on a fan we have no evidence about at all, which is why it stays in the band — but it needs a reason on the card, not a shrug."
     },
     "C-1003": {
       "expected_outcome": "blocked",
@@ -46,7 +45,7 @@
       ],
       "preferred_offer_id": null,
       "acceptable_offer_ids": [],
-      "why": "The trap in this dataset. Biggest cart on the page at $540, and the strongest instinct is to chase it — but it was abandoned one hour ago by a fan with 40 lifetime tickets who bought nine days ago. He is the likeliest person here to finish on his own, and a discount to the club's most loyal fan is both wasted margin and slightly insulting. Hold. If it's still open tomorrow, a reminder — never cash."
+      "why": "The trap in this dataset. Biggest cart on the page at $540, and the strongest instinct is to chase it — but it was abandoned one hour ago by a fan with 40 lifetime tickets who bought nine days ago. He may still be at the checkout, and 'you left something behind' is the worst message he could get right now. Hold. He is also the likeliest person here to finish on his own, and a discount to the club's most loyal fan is both wasted margin and slightly insulting — what he gets instead is the milestone he has earned."
     },
     "C-1005": {
       "expected_outcome": "offer",
@@ -56,10 +55,9 @@
       "preferred_offer_id": "discount_10",
       "acceptable_offer_ids": [
         "discount_10",
-        "discount_15",
-        "upgrade_one_tier"
+        "discount_15"
       ],
-      "why": "One ticket, 300 days ago, cart cold for four days. The relationship is already gone, so the unaided return chance is near zero and a real offer is justified. A 10% discount costs $7. The upgrade is the tempting answer because it costs no cash — but moving two seats from Upper Deck to Lower Bowl gives up about $38 of expected ticket revenue, five times the discount. Cheapest tool that plausibly works means the money, not the seats."
+      "why": "One ticket, 300 days ago, cart cold for four days. The relationship is already gone, so the unaided return chance is near zero and a real offer is justified. A 10% discount costs $7. The upgrade is the tempting answer because it takes no cash — but moving two seats from Upper Deck to Lower Bowl hands over ($53 - $35) x 2 = $36, five times the discount. Cheapest tool that plausibly works means the money, not the seats."
     }
   }
 }
