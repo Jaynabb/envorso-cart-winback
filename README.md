@@ -55,11 +55,11 @@ Sanity check: Seawolves tickets run about $39–$73 and average $50, so a $35–
 across three tiers is the right shape. In production these are price levels in the
 ticketing platform, per fixture — Envorso runs it, so it's a lookup.
 
-### Loyalty: every 15 tickets earns a step
+### Loyalty: a voucher, not an announcement
 
-Paying for a cart that takes a fan past 15, 30 or 45 earns them a reward. `C-1004` has 40
-tickets and 6 seats waiting (40 + 6 = 46, past 45). `C-1001` has 14 and 2 (14 + 2 = 16,
-past 15). Both cross.
+Paying for a cart that takes a fan past 15, 30 or 45 tickets earns them a reward.
+`C-1004` has 40 tickets and 6 seats waiting (40 + 6 = 46, past 45). `C-1001` has 14 and 2
+(14 + 2 = 16, past 15). Both cross.
 
 **It's always one step, never a jump to the top.** That's what makes it work for both
 sides: the fan gets something real, and the club's cost is bounded by a single tier gap
@@ -67,31 +67,29 @@ rather than by how far the fan happens to sit from the best seats in the ground.
 up from the Upper Deck costs $53 − $35 = **$18 a seat**. A step down in price from the
 Club costs $90 − $53 = **$37 a seat**. Neither is open-ended.
 
-**The whole cart moves, not the seat that tipped them over.** A fan crossing their
-fifteenth ticket buying two seats isn't going to sit in the Club while whoever they came
-with stays in the Lower Bowl. So it's priced across every seat:
+**It's two seats, and it's redeemed on a later order.** Both of those bound what the
+club is exposed to. `C-1001` earns a step up:
 
 ```
-C-1001 pays $96 for 2 Lower Bowl seats     →  $48 a seat
-one step up is the Club                    →  $90 a seat
-                                              ───────────
-the club gives up                             $42 a seat  x 2  =  $84
+one step up from the Lower Bowl is the Club   $90 − $53  =  $37 a seat
+                                                     x 2  =  $74
 ```
 
-**If they're already in the best seats, the reward moves to their next order.**
-`C-1004` is in the Club — nowhere to move him — so nothing comes off the cart in front of
-him. Next time he buys, those Club seats are his at Lower Bowl prices:
+`C-1004` is already in the Club, so there's nowhere to move him and the step is a price
+instead — two Club seats at Lower Bowl prices, same $37 gap, same $74.
 
-```
-Club seats                                    $90 a seat
-charged at one step down, the Lower Bowl      $53 a seat
-                                              ───────────
-the club gives up                             $37 a seat  x 6  =  $222
-```
+**Nothing comes off the cart they're holding.** That's the whole system's rule applied to
+its own reward: they already have the tickets in the basket and they were going to pay.
+Handing value back there buys a sale the club already had, which is the exact mistake
+this thing exists to stop. As a voucher it costs nothing on the order that earned it,
+costs nothing at all if it's never claimed, and gives the fan a reason to come back
+rather than a reason to feel clever about the order they're already finishing.
 
-Deliberately not applied to the cart he's mid-way through. Re-pricing an order someone is
-already paying for is a different and messier thing than moving where they sit, and it
-hands cash back on a sale the club was making anyway.
+**And the club doesn't publish the rule.** The fan is told what they've earned, never
+that there's a threshold or where the next one is. "Every 15 tickets earns an upgrade" is
+a contract: it has to be honoured forever, it makes the reward feel owed rather than
+given, and it invites someone to notice that one cheap extra seat is worth a $74 voucher.
+Unannounced, it still does the job it was built for.
 
 They aren't the same *kind* of money, and the card says which: an upgrade gives away
 seats, a price cut gives away cash. Both are priced as money, because both are.
@@ -170,9 +168,9 @@ they hear something, and the read decides whether it costs anything.
 finish by himself.
 
 Leaving your best fans alone is right and looks awful — nothing for the man with forty
-tickets, money off for a stranger. So **every 15 tickets earns a step**, up a section or
-down a price tier if they're already at the top. It's owed rather than spent, so it never
-competes with the win-back logic. Both held fans cross one here.
+tickets, money off for a stranger. So crossing 15, 30 or 45 tickets **earns a voucher**:
+two seats, one step up, redeemed on a later order. It's owed rather than spent, so it
+never competes with the win-back logic, and nothing comes off the cart they're holding.
 
 ### What we offer, and what it costs
 
@@ -276,10 +274,10 @@ sending — shipping it now would only have let me claim a rigour the system doe
 yet.
 
 **The line is drawn around contact, never around entitlement.** A fan in the control
-group who crosses 15 tickets still gets their upgrade when they check out — we just don't
-tell them it's coming. Withholding something a fan has earned to make an experiment
-tidier isn't a trade worth making, and it would be the one thing here most likely to
-actually lose someone's trust.
+group who crosses a milestone still has the voucher land on their account — we just don't
+send the message telling them. Withholding something a fan has earned to make an
+experiment tidier isn't a trade worth making, and it would be the one thing here most
+likely to actually lose someone's trust.
 
 That does mean the two kinds of message have to be measured apart. "Here's 15% off" and
 "you've earned an upgrade" are different things being tested on different people for
@@ -416,9 +414,10 @@ is who they are, leaving them alone is correct, and if you want to do something 
 it shouldn't be money.
 
 **What came out of it:** the fix isn't to shrink the offer to the stranger, it's to pay
-the loyal fan in a currency that isn't discounts. So every 15 tickets now earns a free
-seat upgrade. Both held fans cross one on the cart they abandoned — 45 for `C-1004`, 15
-for `C-1001` — and it's owed regardless, so it never competes with the win-back logic.
+the loyal fan in a currency that isn't discounts. Crossing 15, 30 or 45 tickets now earns
+a voucher — two seats, one step up, on a later order. Both held fans cross one on the cart
+they abandoned, 45 for `C-1004` and 15 for `C-1001`, and it's owed regardless, so it never
+competes with the win-back logic.
 
 A full loyalty programme is still out of scope for a cart tool. One rule that costs
 nothing extra is not.

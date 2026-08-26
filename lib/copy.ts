@@ -1,6 +1,6 @@
 import type { CartFacts } from "./schema.ts";
 import { getOffer, upgradeTarget } from "./catalog.ts";
-import { milestone, TICKETS_PER_UPGRADE } from "./policy.ts";
+import { milestone, MILESTONE_SEATS } from "./policy.ts";
 
 /**
  * What the marketer actually sends.
@@ -33,24 +33,27 @@ function seatPhrase(cart: CartFacts): string {
 /**
  * The milestone line, when this cart earns one.
  *
- * Goes in every template rather than only the reminder, because a fan crossing
- * their 45th ticket should hear about it whatever else we're sending. It also
- * turns the one message a loyal fan gets from a nag into news, which is the
- * whole point of having it.
+ * Two things are deliberately NOT said here: how many tickets it took, and that
+ * there's a rule at all.
+ *
+ * Publishing "every 15 tickets earns an upgrade" turns a thank-you into a
+ * contract. It sets an expectation the club then has to honour forever, it
+ * invites someone to work out that a cheap extra seat is worth a $74 voucher,
+ * and it makes the reward feel owed rather than given. Unannounced, it does the
+ * job it was built for — the loyal fan who correctly gets no discount still
+ * hears something worth reading — without any of that.
+ *
+ * So the fan is told what they've earned. Not how, and not what comes next.
  */
 function milestoneLine(cart: CartFacts): string {
   const m = milestone(cart);
   if (!m) return "";
-  const party =
-    cart.seats === 1 ? "you" : cart.seats === 2 ? "both of you" : `all ${cart.seats} of you`;
-  const lead = `\n\nAnd these take you to ${m.ticketsAfter} tickets with us. Every ${TICKETS_PER_UPGRADE} earns something back`;
+  const seats = `${MILESTONE_SEATS} seats`;
 
-  // Already in the best seats in the ground, so the thank-you is the price
-  // rather than the seat. Same gesture, said plainly.
   if (m.reward.kind === "priced_down") {
-    return `${lead}. You're already in the best seats in the ground, so there's nowhere to move you — instead, next time you buy, your ${cart.section} seats are yours at ${m.reward.section} prices.`;
+    return `\n\nOne more thing. You've been with us a while, and you're already in the best seats in the ground — so there's nowhere left to move you. Instead, next time you book, ${seats} in the ${cart.section} are yours at ${m.reward.section} prices. It'll be waiting on your account.`;
   }
-  return `${lead} — and it lands on the tickets already in your cart. Finish up and ${party} move to the ${m.reward.section} for this match, at the price you're paying now. You'll be sitting together.`;
+  return `\n\nOne more thing. Finish this order and you've earned ${seats} in the ${m.reward.section} at ${cart.section} prices, whenever you next book. It'll be waiting on your account.`;
 }
 
 export function buildCopy(cart: CartFacts, offerId: string): SendCopy {
@@ -63,9 +66,7 @@ export function buildCopy(cart: CartFacts, offerId: string): SendCopy {
       return {
         subject: !milestone(cart)
           ? "Your Seawolves seats are still held"
-          : milestone(cart)!.reward.kind === "upgrade"
-            ? "These seats come with an upgrade"
-            : "You're one order from a better price",
+          : "Your seats are held — and there's something on your account",
         email: `Hi,
 
 You left ${seats} in your cart. They're still there if you want them — nothing has been taken off the board yet.${milestoneLine(cart)}
@@ -78,8 +79,8 @@ Seattle Seawolves`,
           const m = milestone(cart);
           if (!m) return `Your ${seats} for the Seawolves are still held. Finish up: [CART LINK]`;
           return m.reward.kind === "upgrade"
-            ? `Your ${seats} are still held — and they take you past ${m.at} tickets, so we'll move the whole party up to the ${m.reward.section} on this order. Finish up: [CART LINK]`
-            : `Your ${seats} are still held — and they take you past ${m.at} tickets, so your next order is ${cart.section} seats at ${m.reward.section} prices. Finish up: [CART LINK]`;
+            ? `Your ${seats} are still held — and finishing up earns you ${MILESTONE_SEATS} ${m.reward.section} seats at ${cart.section} prices next time. [CART LINK]`
+            : `Your ${seats} are still held — and finishing up earns you ${MILESTONE_SEATS} ${cart.section} seats at ${m.reward.section} prices next time. [CART LINK]`;
         })(),
       };
 

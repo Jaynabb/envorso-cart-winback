@@ -27,7 +27,7 @@ import {
 /* ---------- the numbers, and why there are so few ------------------- */
 
 /**
- * There are two chosen numbers in this entire system, and this is one of them.
+ * There are three chosen numbers in this entire system, and this is one of them.
  *
  * Everything else is either read off the data (what a seat in each section
  * costs, which is cart value over seats) or decided by an agent and shown to a
@@ -62,6 +62,21 @@ export const TOO_FRESH_HOURS = 2;
  * thing to explain to someone sitting next to a stranger with 15% off.
  */
 export const TICKETS_PER_UPGRADE = 15;
+
+/**
+ * The third, and it's what stops the reward being open-ended.
+ *
+ * A milestone is worth at most two seats. The first version moved the whole
+ * party, on the reasoning that a fan crossing their fifteenth ticket isn't
+ * going to sit in the Club while their friends stay in the Upper Deck — which
+ * is true of a pair and gets expensive fast: six seats in the Club cost the
+ * club $222 to honour, on one order. A reward the club can't predict the size
+ * of is a reward it will eventually stop honouring.
+ *
+ * Two seats is a night out. It's also the size at which the number stops
+ * depending on how big a group the fan happened to book with.
+ */
+export const MILESTONE_SEATS = 2;
 
 /**
  * Which tier of offer a fan qualifies for, given how likely they were to come
@@ -172,9 +187,22 @@ export function gate(cart: CartFacts): GateResult {
  * club's cost can't run away with how far a fan happens to sit from the best
  * seats in the ground.
  */
+/**
+ * Always redeemable, never applied to the cart in hand.
+ *
+ * The first version upgraded the seats they were buying right now, which read
+ * well and broke the rule this whole system is built on: it hands value back on
+ * a sale the club was already making. The fan had the tickets in their basket.
+ * They were going to pay. Discounting that is the same mistake as sending a
+ * loyal fan 15% off, wearing better clothes.
+ *
+ * As a voucher it costs the club only when it's claimed, it costs nothing on
+ * the order that earned it, and it gives the fan a reason to come back rather
+ * than a reason to feel clever about the one they're already finishing.
+ */
 export type MilestoneReward =
-  | { kind: "upgrade"; section: string; appliesTo: "this_cart" }
-  | { kind: "priced_down"; section: string; appliesTo: "next_purchase" };
+  | { kind: "upgrade"; section: string }
+  | { kind: "priced_down"; section: string };
 
 export interface Milestone {
   /** The number they land on — 15, 30, 45. */
@@ -182,15 +210,7 @@ export interface Milestone {
   /** Lifetime tickets once this cart is paid for. */
   ticketsAfter: number;
   reward: MilestoneReward;
-  /**
-   * What honouring it costs, across the WHOLE cart.
-   *
-   * The whole party moves or nobody does. A fan who crosses their fifteenth
-   * ticket buying two seats isn't going to sit in the Club while whoever they
-   * came with stays in the Upper Deck — they're at the match together. So it's
-   * priced for every seat in the cart, not the one that happened to tip them
-   * over.
-   */
+/** The most it can cost, if they claim it in full. Bounded by MILESTONE_SEATS. */
   costUsd: number;
   /**
    * Whether it comes out of the till or out of inventory.
@@ -212,23 +232,28 @@ export function milestone(cart: CartFacts): Milestone | null {
     return null;
   }
 
-  const paidPerSeat = cart.cart_value_usd / cart.seats;
   const up = upgradeTarget(cart.section);
   const down = tierBelow(cart.section);
 
   // Move them up if there's anywhere to go. If they're already at the top,
-  // they keep their seats and pay the tier below's price.
+  // they keep their seats and pay the tier below's price. Either way it's one
+  // step — never a jump to the best seats in the ground, so the club's exposure
+  // is a single tier gap rather than however far this fan happens to sit from
+  // the top.
   const reward: MilestoneReward | null = up
-    ? { kind: "upgrade", section: up, appliesTo: "this_cart" }
+    ? { kind: "upgrade", section: up }
     : down
-      ? { kind: "priced_down", section: down, appliesTo: "next_purchase" }
+      ? { kind: "priced_down", section: down }
       : null;
   if (!reward) return null;
 
-  const costUsd =
+  // Priced off the section, not off this cart, because it's redeemed against a
+  // future order we haven't seen. One tier gap, at most MILESTONE_SEATS seats.
+  const gap =
     reward.kind === "upgrade"
-      ? Math.round(Math.max(0, SECTION_PRICE[reward.section] - paidPerSeat) * cart.seats * 100) / 100
-      : Math.round(Math.max(0, paidPerSeat - SECTION_PRICE[reward.section]) * cart.seats * 100) / 100;
+      ? SECTION_PRICE[reward.section] - SECTION_PRICE[cart.section]
+      : SECTION_PRICE[cart.section] - SECTION_PRICE[reward.section];
+  const costUsd = Math.round(Math.max(0, gap) * MILESTONE_SEATS * 100) / 100;
 
   return {
     at: Math.floor(after / TICKETS_PER_UPGRADE) * TICKETS_PER_UPGRADE,
@@ -282,11 +307,11 @@ export function operatorNote(cart: CartFacts): string | null {
   const m = milestone(cart);
   if (m?.reward.kind === "upgrade") {
     notes.push(
-      `This cart takes them past ${m.at} tickets, so the seats they're buying get upgraded — all ${cart.seats} of them to the ${m.reward.section}, on this order. No cash, but $${m.costUsd.toFixed(2)} of better seats handed over. The whole party moves or nobody does; they're going together.`,
+      `Paying for this cart takes them past ${m.at} tickets, which earns a voucher: ${MILESTONE_SEATS} seats in the ${m.reward.section} at ${cart.section} prices, on a future order. Nothing comes off this cart. Costs up to $${m.costUsd.toFixed(2)} in better seats if they claim it, and nothing if they don't.`,
     );
   } else if (m) {
     notes.push(
-      `This cart takes them past ${m.at} tickets, but they're already in the ${cart.section} — nowhere to move them. So the reward lands on their NEXT purchase: ${cart.section} seats at ${m.reward.section} prices. Nothing comes off this cart, and on an order this size it'd be worth about $${m.costUsd.toFixed(2)} when they claim it — real cash, not spare seats.`,
+      `Paying for this cart takes them past ${m.at} tickets, and they're already in the ${cart.section} — nowhere to move them. So the voucher is a price instead: ${MILESTONE_SEATS} ${cart.section} seats at ${m.reward.section} prices on a future order. Nothing comes off this cart. Costs up to $${m.costUsd.toFixed(2)} in real cash if they claim it.`,
     );
   }
 
