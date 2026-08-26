@@ -268,11 +268,18 @@ is worth it.
 
 ### How it could be wrong without me seeing
 
-**It reasons perfectly from a number I made up.** That's the whole failure mode, and it
-has cost money twice in this build. My price list said a seat upgrade cost nothing, so
-the agents handed them out. Nothing in the output looked wrong, because nothing *was* —
-except the number. Agent 3 had been arguing against upgrades for hours, and I'd overruled
-it by writing `$0` on the menu it reads.
+**It reasons perfectly from something it was handed.** That's the whole failure mode,
+and it isn't hallucination — it's the opposite. Every step is sound and the input is bad,
+so nothing in the output looks wrong, because nothing *is* wrong except the thing nobody
+checked.
+
+Two examples from this build, both caught by looking at the input rather than the answer.
+The catalog priced a seat upgrade at `$0`, so the agents handed them out — while the
+reviewer agent argued against them for hours and lost, to a menu that said they were
+free. Later, the reviewer's list of alternatives excluded the offer it was reviewing, so
+when the strategist correctly picked the cheapest option the list started one rung above
+it. The reviewer said *"the proposed 10% discount isn't even offered here"* and traded
+two carts up to the dearer offer. Faultless reasoning, wrong list.
 
 The output is never the thing that looks wrong. So what catches it is upstream of the
 output:
@@ -285,9 +292,11 @@ output:
 - **Every check has something enforcing it.** The price cap was *reported* for three runs
   while the pipeline let the offers through, because nothing removed them from the menu.
   A check with nothing in front of it is a report, not a guard rail.
-- **Guesses get tested rather than defended.** Lower Bowl seats are $48 in one cart and
-  $58 in another; anywhere in that range the upgrade is still too expensive, so the
-  guess doesn't matter. Where a number does matter I take the expensive assumption.
+- **Guesses get tested rather than defended.** Sweeping a number across its plausible
+  range takes minutes and answers whether it matters at all. Lower Bowl seats are $48 in
+  one cart and $58 in another; anywhere in that range the upgrade is still too expensive,
+  so the guess doesn't matter. Where one does matter I take the expensive assumption
+  rather than the convenient one.
 - **It fails closed.** Anything breaks, the cart holds. There is no path through this
   where a failure produces an offer.
 
@@ -295,18 +304,18 @@ output:
 
 ## Section C — AI usage log
 
-Four moments where I changed what the model had built. Each one moved a number.
+I built this with Claude Code. It wrote most of the code and all of the first draft of
+the pricing. My job was deciding what was true, and four of those decisions changed the
+system. Each one started as a question, not a correction.
 
-### 1 · The upgrade it told me was free
+### 1 · "What does that actually cost us in dollars?"
 
-**What I asked:** it was recommending a free seat upgrade. I asked what that actually
-costs the club in dollars.
+The model was recommending a free seat upgrade and calling it free. I asked what it cost
+the club in dollars. It said free — no cash, just seats.
 
-**What it said:** free. No cash — just seats.
-
-**What I did:** didn't accept it. A better seat is worth more than the one they had, and
-someone else could have bought it. Nobody handing over money doesn't make it free. So I
-made it work the number out, for a fan with **2 Upper Deck seats at $35 — a $70 cart**:
+I didn't accept that. A better seat is worth more than the one they had, and someone else
+could have bought it. Nobody handing over money doesn't make it free. So I had it work
+the number out, for a fan with **2 Upper Deck seats at $35 — a $70 cart**:
 
 ```
 give away 2 Lower Bowl seats   $53 x 2  =  $106   revenue we can't collect
@@ -317,33 +326,39 @@ the upgrade costs                            $36   →  club keeps $34
 ```
 
 Half the cart, to save the cart. The "free" option was the most expensive thing on the
-list, and it was being recommended because nobody had priced it.
+list, and it was being recommended because nothing had priced it.
 
 **Where those numbers come from:** ticket prices are read off the carts — a $140 cart
 with 4 seats means Upper Deck is $35. The $18 gap assumes the better seat would have
 sold, which is both the realistic case, since the Seawolves report selling out, and the
-cautious one, because if it wouldn't have sold the upgrade costs less.
+cautious one: if it wouldn't have sold, the upgrade costs less than this says.
 
-**The uncomfortable part:** one of my own agents had been telling me this for hours. It
-kept saying a discount costs less than giving away inventory, and I overruled it every
-time, because the menu I'd written said the upgrade was free. It wasn't wrong. I was, for
-overruling it. Once the prices were real, its agreement with my hand-written answers went
-from 0% to 100%.
+**One of its own agents had been saying this for hours.** The reviewer kept objecting
+that a discount costs less than giving away inventory, and it kept getting overruled — by
+a menu that printed `$0` next to the upgrade. It was right and the menu was wrong. Once
+the prices were real, its agreement with my hand-written answers went from 0% to 100%.
 
-### 2 · Where did these numbers come from?
+**And it wasn't finished after the fix.** Days later I caught the catalog still telling
+the agents an upgrade *"spends a seat that was likely going unsold"* — while the price
+underneath assumed that same seat would definitely have sold. The number was right and
+the sentence beside it argued the opposite. That's the version of this that survives a
+fix: the price gets corrected, the wording that caused it doesn't.
 
-**What I asked:** it had built me a policy layer — a spending cap, a cooling-off window,
-a loyalty threshold, an offer strength ladder. I asked one question about one of them:
-where did the booking fee come from?
+### 2 · "Where did these numbers come from?"
 
-**What I found:** nowhere. This dataset has cart value, seats, section, ticket history
-and an opt-in flag. It has no fee. A rate had been invented, an offer built on top of it,
-and that offer had become the *recommended* one — so the headline of the demo was resting
-on a number that doesn't exist. I asked the same question of the other ten thresholds and
-got the same answer ten more times.
+It had built a policy layer — a spending cap, a cooling-off window, a loyalty threshold,
+an offer strength ladder. I picked one number and asked where it came from.
 
-**What I did:** made it prove which ones mattered rather than argue for them. Sweeping
-every threshold across its plausible range against the five carts settled it in minutes:
+A booking fee. 12%. It came from nowhere: this dataset has cart value, seats, section,
+ticket history and an opt-in flag, and no fee. A rate had been invented, an offer built
+on top of it, and that offer had become the *recommended* one — so the headline of this
+demo was resting on a number that doesn't exist. Earlier the same thing had produced
+sell-through rates for each section, cited as if they were the club's. I asked the same
+question of the remaining thresholds and got the same answer ten more times.
+
+**What I did about it was the part that mattered.** I didn't argue over which ones felt
+reasonable — I had it sweep every threshold across its plausible range against the five
+carts, and let the sweep decide:
 
 ```
 share cap        0.2   →  identical decisions anywhere from 0.10 to 0.50
@@ -351,70 +366,64 @@ staleness        14d   →  nearest flip at 3 days
 loyal fan     10t/60d  →  changes nothing at any value from 3 tickets to 30
 ```
 
-The cap I'd have defended hardest changed nothing. The loyalty rule never fired once —
-the analyst had already read those fans off their real history, and the threshold was
-re-deriving that from a number I'd made up. **Deleting all eleven changed one decision
-out of five, and made it cheaper.** Two chosen numbers survive: don't interrupt someone
-who may be at the checkout, and the milestone.
+The cap that would have been easiest to defend changed nothing. The loyalty rule never
+fired once — the analyst had already read those fans off their real purchase history, and
+the threshold was re-deriving that conclusion from an invented number. **Deleting all
+eleven changed one decision out of five, and made it cheaper.**
 
-**What it exposed on the way out:** with the ladder gone, the reviewer started overruling
-correct proposals — it traded both offers up to the dearer option in the same run. The
-reason was mine again. Its list of alternatives excluded the offer under review, so when
-the strategist correctly picked the cheapest, the list it was shown started one rung
-higher. In its own words: *"the proposed 10% discount isn't even offered here."* Sound
-reasoning, wrong list.
+Three chosen numbers are left: don't contact anyone inside two hours, a milestone every
+15 tickets, and a milestone is worth two seats. Everything else is a ticket price read
+off the carts.
 
-### 3 · An offer nothing could ever choose
+### 3 · "What decides whether a fan gets 10% or 15%?"
 
-**What I asked:** what decides whether a fan gets 10% off or 15%?
+One question, and the answer was: nothing does.
 
-**What I found:** nothing did. The catalog said 15% was *"reserved for a fan we have no
-evidence will ever come back — a first-timer with no history, or someone long lapsed"*,
-and the selection rule says take the cheapest that plausibly works. Every fan matching
-the first sentence also qualified for the cheaper option, so the cheaper one always won.
-**Across sixty carts, 15% off was chosen zero times.** It was decoration, and I'd have
-demoed it as a live option.
+The catalog reserved 15% for *"a fan we have no evidence will ever come back — a
+first-timer with no history, or someone long lapsed."* But the selection rule takes the
+cheapest offer that plausibly works, and every fan matching that description qualified
+for 10% too. The cheaper one won every time. **Across sixty carts, 15% off was chosen
+zero times.** It was decoration, and I'd have presented it as a live option.
 
-**What I changed:** depth now follows whether there's a history to read, which is a field
-rather than a threshold. A fan who bought before and stopped gets 10% — they know what a
-ticket costs and chose not to buy, so the smaller lever tests whether price is what's in
-the way. Someone who has never bought gets 15%, because a first purchase is the club
-buying a supporter rather than discounting a cart.
+So I gave it a determining factor that comes from the data rather than from a threshold:
+whether there's a purchase history to read. A fan who bought before and stopped gets 10%
+— they know what a ticket costs and chose not to buy, so the smaller lever tests whether
+price is what's in the way. Someone who has never bought gets 15%, because a first
+purchase is the club buying a supporter rather than discounting a cart.
 
-**What happened:** across sixty carts, 21 tens and 6 fifteens. Acquisition and
-reactivation, priced differently on purpose.
+Across sixty carts now: 21 tens, 6 fifteens. Acquisition and reactivation, priced apart
+on purpose.
 
-### 4 · A reward that broke the rule it was built to protect
+### 4 · "The club can't bleed money on these upgrades"
 
-**What I asked:** the milestone was upgrading a fan's whole party, on the cart they were
-already holding. I asked what that was costing.
+The loyalty milestone was mine — every 15 tickets earns a step up, so the fans who
+correctly get no discount still get something. What came back upgraded a fan's whole
+party, on the cart they were already holding. I asked what it was costing.
 
-**What I found:** `C-1004`'s six Club seats came to **$222 on a single order** — but the
-cost wasn't the real problem. He had six seats in the basket and he was going to pay for
-them. Handing value back there buys a sale the club already had, which is the exact
-mistake this entire system exists to prevent. The reward was breaking the rule it was
-built to protect, while looking generous.
+`C-1004`'s six Club seats came to **$222 on a single order**. A reward the club can't
+predict the size of is a reward it eventually stops honouring. Three changes, and each
+one bounds it:
 
-**What I changed:** three things, all of them bounding the club's exposure. It's a
-voucher on a *later* order, so nothing comes off the cart in hand and it costs nothing if
-never claimed. It's capped at two seats, so the figure doesn't depend on how big a group
-the fan happened to book with. And it's **not announced** — the fan is told what they've
-earned, never that there's a threshold or where the next one is. Publish "every 15
-tickets earns an upgrade" and it stops being a thank-you and becomes a contract you have
-to honour forever, with someone eventually noticing that one cheap extra seat is worth a
-$74 voucher.
+- **Redeemable on a later order.** Nothing comes off the cart in hand, and it costs
+  nothing at all if it's never claimed. This turned out to matter more than the money: he
+  already had six seats in the basket and was going to pay for them, so upgrading *those*
+  buys a sale the club already had — the exact mistake the rest of the system exists to
+  prevent. The reward had been breaking the rule it was built to protect.
+- **Capped at two seats**, so the figure doesn't depend on how large a group the fan
+  happened to book with.
+- **Not announced.** The fan is told what they've earned, never that there's a threshold
+  or where the next one is. Publish "every 15 tickets earns an upgrade" and it stops being
+  a thank-you and becomes a contract — honoured forever, felt as owed rather than given,
+  and eventually someone works out that one cheap extra seat is worth a $74 voucher.
 
-**What happened:** $222 and $84 both became **$74**, and the loyal fan still gets
-something worth reading instead of a blank.
+$222 and $84 both became **$74**.
 
 ### What these have in common
 
-Not one of them was the model being wrong. It was reasoning correctly from a price I'd
-invented, a threshold I'd invented, a catalog entry that contradicted itself, and a list
-that omitted the option being judged. It even told me about the first one for hours
-before I listened.
+None of them were the model being wrong in a way that showed. It reasoned correctly from
+a price of zero, from thresholds with no source, and from a catalog entry that
+contradicted its own arithmetic — and every output looked fine, because given what it had
+been told, every output *was* fine.
 
-**A prompt isn't a description of the system. It's part of the system.** The most useful
-thing I did on this build wasn't catching a bad answer — it was asking where a number
-came from, and then testing it instead of taking the answer.
-
+That's why none of these were caught by reading the answers. They were caught by asking
+where a number came from, and then testing it rather than accepting the explanation.
