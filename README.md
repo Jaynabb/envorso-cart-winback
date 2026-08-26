@@ -141,10 +141,10 @@ the cart, to save the cart. Nothing may exceed a fifth of the cart it is rescuin
 **No sending.** The agent proposes; the marketer copies ready-made email and SMS text.
 There is no CRM, and a sender would be the least valuable thing in the sprint.
 
-**No spend budget.** I built one and cut it. Every offer is approved individually with
-its price on the card, so nobody can overspend by accident — the cap guarded a failure
-mode the approval gate already prevents. First thing to add if this ever sends without
-a person in front of it.
+**No spend budget.** Every offer is approved one at a time with its price on the card,
+so nobody can overspend by accident — a daily cap would guard a failure mode the
+approval gate already prevents. It's the first thing to add the day this sends without
+a person in front of it, and not before.
 
 **No personalisation past the segment**, no multi-team abstraction, no self-serve rule
 editing. One club, one marketer, one screen.
@@ -331,28 +331,27 @@ discounts — recognition, first access, an upgrade when there's room in the sta
 That's a loyalty programme, not a cart tool. So the system doesn't pretend to solve it.
 It puts it in front of the person who can.
 
-### 3 · The budget I had it delete
+### 3 · Four words that cut the day's spend by two thirds
 
-**What I asked for:** nothing. It built a daily spend cap on its own — $250 a day, a
-warning when a run went over, a bar filling up as I approved offers.
+**What I asked for:** the reviewer had turned down a free seat upgrade, saying it was
+*"invisible — they won't know what 'one section better' means."* I asked why we didn't
+just call it a seat upgrade, so the customer would understand it.
 
-**What I rejected, and why:** every offer here is approved one at a time, by a person,
-with the price on the card. Nobody can overspend by accident; you'd have to click
-through each one individually. The cap was guarding against something that can't happen
-in this system.
+**What it gave me:** the objection was true — of the wrong thing. Our internal menu
+called it *"free upgrade, one section better."* The email a fan actually receives says
+*"we'd like to move you up to the Lower Bowl."* The agent was reasoning about my label,
+not about anything a fan would ever read, and turning down a free offer because of it.
 
-**What changed:** all of it went — the constant nobody could source, the check, the
-progress bar, the warning copy, and a concept this README would have had to explain.
+**What I changed:** the menu the agents see now uses the same words the fan gets — *Free
+upgrade from Upper Deck to Lower Bowl* — instead of the catalog's generic label.
 
-The **per-cart limit stayed**, because that one guards something real: it stops the
-agent proposing an offer worth more than the cart it's rescuing. There was a live
-example — a $60 ceiling sitting against a $58 cart.
+**What it did:** the first-time buyer's offer moved from 10% off to the free upgrade,
+and the day's cash spend dropped from $21 to $7. A naming choice inside my own prompt
+had been costing the club money.
 
-**What it cost to find out:** three rounds. A cap, then a bug in the cap, then a
-cleverer version of the cap — and the cleverer one didn't work either, because a
-percentage can't catch a runaway day. A hundred offers at ten percent is still ten
-percent.
-
-**The rule I'd take from it:** a guard rail for a system you haven't built yet isn't
-safety, it's complexity. This gets added the day it starts sending without a person in
-front of it. Not before.
+**The rule I'd take from it:** the words in a prompt aren't labels on the system, they're
+inputs to it. Three separate times a decision changed because of how I'd worded
+something — this one, a price line that said *"no cash, but…"* and got read as free, and
+the phrase *"cheapest tool"*, which is ambiguous once you know a fee waiver on four
+seats costs more than 15% off. None of those were the model being wrong. They were the
+model being right about what I actually said.
