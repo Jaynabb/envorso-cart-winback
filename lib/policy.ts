@@ -250,7 +250,7 @@ export function gate(
       pass: true,
       maxStrength: COOLING_OFF_MAX_STRENGTH,
       minStrength: COOLING_OFF_MIN_STRENGTH,
-      note: `Left ${cart.abandoned_hours_ago} hours ago. Most fans this fresh come back on their own, so nothing that costs money goes out until tomorrow — but a reminder is free and they probably just got interrupted.`,
+      note: `Left ${cart.abandoned_hours_ago} hours ago — too fresh to spend money on, most fans this recent come back by themselves. A reminder is free though.`,
     };
   }
 
@@ -277,6 +277,48 @@ export function needsEscalation(cost: number, strength: number): boolean {
 }
 
 /**
+ * Every 15 tickets earns a free seat upgrade.
+ *
+ * This is the club's answer to the awkward question the rest of the system
+ * can't solve: a loyal fan correctly gets no win-back offer, because they were
+ * coming back anyway — and that leaves them with a blank next to a stranger's
+ * 15% off. Fans talk. A few thousand of them know each other.
+ *
+ * A milestone fixes it in a currency that isn't a discount. It is EARNED rather
+ * than spent: the fan gets it for buying their 15th, 30th, 45th ticket, whether
+ * or not they ever abandoned a cart. So it doesn't break the rule about not
+ * paying for sales you already had — nothing here is being paid to change
+ * anyone's mind. It's owed.
+ *
+ * It also gives the one message a loyal fan does get something worth reading.
+ * "Your cart is still there" is a nag. "These two seats take you to fifteen
+ * tickets, and that earns you an upgrade" is news.
+ */
+export const TICKETS_PER_UPGRADE = 15;
+
+export interface Milestone {
+  /** The number they land on — 15, 30, 45. */
+  at: number;
+  /** Lifetime tickets once this cart is paid for. */
+  ticketsAfter: number;
+}
+
+/** Does paying for this cart take the fan past their next milestone? */
+export function milestone(cart: CartFacts): Milestone | null {
+  const before = cart.lifetime_tickets;
+  const after = before + cart.seats;
+  if (
+    Math.floor(after / TICKETS_PER_UPGRADE) <= Math.floor(before / TICKETS_PER_UPGRADE)
+  ) {
+    return null;
+  }
+  return {
+    at: Math.floor(after / TICKETS_PER_UPGRADE) * TICKETS_PER_UPGRADE,
+    ticketsAfter: after,
+  };
+}
+
+/**
  * What the screen should say beyond the decision itself.
  *
  * A loyal fan correctly gets no offer — they were coming back anyway, and
@@ -287,16 +329,30 @@ export function needsEscalation(cost: number, strength: number): boolean {
  * belongs to a person, not to this pipeline. So: put it in front of them.
  */
 export function operatorNote(cart: CartFacts): string | null {
+  const notes: string[] = [];
+
+  // The milestone comes first, because it's the actionable one — it's a thing
+  // this fan has earned rather than a thing we've decided about them.
+  const m = milestone(cart);
+  if (m) {
+    notes.push(
+      `This cart takes them past ${m.at} tickets, which earns a free seat upgrade. Say so — it turns a nag into a reason to finish.`,
+    );
+  }
+
   const loyal =
     cart.lifetime_tickets >= LOYAL_TICKETS &&
     cart.last_purchase_days_ago !== null &&
     cart.last_purchase_days_ago <= LOYAL_RECENCY_DAYS;
-  if (!loyal) return null;
+  if (!loyal) return notes.length ? notes.join(" ") : null;
 
   // Worded to hold up whether this fan is being left alone or sent a free
   // reminder. An earlier version said "leaving them alone is right", which
   // started contradicting the card it sat on the moment reminders existed.
-  return `${cart.lifetime_tickets} lifetime tickets, last bought ${cart.last_purchase_days_ago} days ago — this is the club's core. Whatever reaches them, it shouldn't be a discount: they were coming back anyway, and marking their tickets down is both wasted and slightly insulting. If you want to do something for this fan, make it recognition rather than money.`;
+  notes.push(
+    `${cart.lifetime_tickets} tickets, last bought ${cart.last_purchase_days_ago} days ago — the club's core. Don't discount them: they were coming back anyway.`,
+  );
+  return notes.join(" ");
 }
 
 /* ---------- the invariants ------------------------------------------ */

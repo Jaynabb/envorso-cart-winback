@@ -1,5 +1,6 @@
 import type { CartFacts } from "./schema.ts";
 import { getOffer, upgradeTarget } from "./catalog.ts";
+import { milestone, TICKETS_PER_UPGRADE } from "./policy.ts";
 
 /**
  * What the marketer actually sends.
@@ -29,6 +30,22 @@ function seatPhrase(cart: CartFacts): string {
   return `${cart.seats} seat${cart.seats === 1 ? "" : "s"} in the ${cart.section}`;
 }
 
+/**
+ * The milestone line, when this cart earns one.
+ *
+ * Goes in every template rather than only the reminder, because a fan crossing
+ * their 45th ticket should hear about it whatever else we're sending. It also
+ * turns the one message a loyal fan gets from a nag into news, which is the
+ * whole point of having it.
+ */
+function milestoneLine(cart: CartFacts): string {
+  const m = milestone(cart);
+  if (!m) return "";
+  const target = upgradeTarget(cart.section);
+  const upgrade = target ? ` — we'll move you to the ${target} for this one` : "";
+  return `\n\nAnd these take you to ${m.ticketsAfter} tickets with us. Every ${TICKETS_PER_UPGRADE} earns a free seat upgrade${upgrade}.`;
+}
+
 export function buildCopy(cart: CartFacts, offerId: string): SendCopy {
   const offer = getOffer(offerId);
   const seats = seatPhrase(cart);
@@ -37,16 +54,20 @@ export function buildCopy(cart: CartFacts, offerId: string): SendCopy {
   switch (offerId) {
     case "reminder_only":
       return {
-        subject: "Your Seawolves seats are still held",
+        subject: milestone(cart)
+          ? "Your next seats earn you an upgrade"
+          : "Your Seawolves seats are still held",
         email: `Hi,
 
-You left ${seats} in your cart. They're still there if you want them — nothing has been taken off the board yet.
+You left ${seats} in your cart. They're still there if you want them — nothing has been taken off the board yet.${milestoneLine(cart)}
 
 Finish up here: [CART LINK]
 
 See you at the match,
 Seattle Seawolves`,
-        sms: `Your ${seats} for the Seawolves are still held. Finish up: [CART LINK]`,
+        sms: milestone(cart)
+          ? `Your ${seats} are still held — and they take you to ${milestone(cart)!.ticketsAfter} tickets, which earns a free seat upgrade. Finish up: [CART LINK]`
+          : `Your ${seats} for the Seawolves are still held. Finish up: [CART LINK]`,
       };
 
     case "fee_waiver": {
