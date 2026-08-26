@@ -24,13 +24,14 @@
         "unknown",
         "low"
       ],
-      "preferred_offer_id": "discount_15",
+      "preferred_offer_id": "fee_waiver",
       "acceptable_offer_ids": [
+        "fee_waiver",
         "discount_15",
         "discount_10",
         "upgrade_one_tier"
       ],
-      "why": "Never purchased, so there is genuinely no history saying he comes back — the one cart in the set where a real offer is honest rather than lazy. Four seats of a brand new fan is the highest acquisition value here, and 15% of $140 is $21. An upgrade for four would give up roughly $77 of expected ticket revenue, so the deepest discount we sell is still the cheaper way to win him."
+      "why": "Never purchased, so there's genuinely no history saying he comes back — the one cart here where a real offer is honest rather than lazy, and four seats of a brand new fan is the highest acquisition value in the set. Waiving the booking fee costs $16.80 (140 x 0.12) against $14 for 10% off and $21 for 15%. Slightly dearer than the 10%, and worth it: it converts him without teaching a first-time buyer that Seawolves tickets go on sale. It's also the smallest tool above the floor, which is what the rule says to reach for first. This key originally excluded it and the agent kept picking it — the agent was applying my own rule better than my key did."
     },
     "C-1003": {
       "expected_outcome": "blocked",

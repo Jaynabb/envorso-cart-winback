@@ -224,12 +224,22 @@ deserved, and why, before an agent saw the data. That way my judgement is the be
 instead of me reading its output and talking myself into agreeing.
 
 `scripts/eval.mts` scores it, and the result splits in a way worth reporting honestly.
-**Which carts get an offer is identical every run — five out of five, repeatedly.** Which
-offer it picks moves around: always inside the range I said was reasonable, but matching
-my exact pick maybe a third of the time. That gap is the answer key being over-confident,
-not the agent being wrong. Choosing between 10% and 15% on those carts was a coin-flip I
-didn't have grounds for, and the eval shows me that rather than letting me believe the
-question was settled.
+**Which carts get an offer is identical every run — five out of five, every time.** Which
+offer it picks moves around inside the range I said was reasonable, matching my exact
+pick between a third and two thirds of the time. That gap isn't the agent being wrong;
+it's my key claiming a precision I don't have. Choosing between 10% and 15% on those
+carts was a coin-flip.
+
+**And three times now the key has been the thing that was wrong.** It preferred an
+upgrade for `C-1005` until upgrades were priced properly and turned out to cost five
+times a discount. It excluded a booking-fee waiver for `C-1002` while the agent kept
+picking one — correctly, because my own rule says take the smallest tool above the floor,
+and I hadn't noticed the fee waiver was it. Each time the eval flagged a disagreement I'd
+assumed was the agent's fault, and each time reading it properly changed my mind rather
+than the prompt.
+
+That's the part I didn't expect from an answer key. It isn't only a grade for the agent —
+it's the thing that keeps catching me.
 
 It also needs me to have labelled the carts, so it stops working past the five I sat down
 and thought about.
