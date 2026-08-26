@@ -40,28 +40,68 @@ justify the second.
 agent. Left the cart under two hours ago? Nothing, they might still be paying. Under 24
 hours? A free reminder, but no money.
 
-This is also where loyalty lives. Every 15 tickets earns a free upgrade, so paying for a
-cart that takes a fan past 15, 30 or 45 earns them one. `C-1004` has 40 tickets and 6
-seats waiting; `C-1001` has 14 and 2. Both cross.
+### What a seat costs
+
+Every price in this README comes from these three numbers, and every one of those is read
+off the sample carts rather than invented:
+
+| section | per seat | where it comes from |
+|---|---|---|
+| Upper Deck | **$35** | `C-1002` is $140 for 4 seats. 140 ÷ 4 = 35 |
+| Lower Bowl | **$53** | `C-1001` is $96 for 2 → $48. `C-1003` is $58 for 1 → $58. Midpoint 53 |
+| Club | **$90** | `C-1004` is $540 for 6 seats. 540 ÷ 6 = 90 |
+
+Sanity check: Seawolves tickets run about $39–$73 and average $50, so a $35–$90 spread
+across three tiers is the right shape. In production these are price levels in the
+ticketing platform, per fixture — Envorso runs it, so it's a lookup.
+
+### Loyalty: every 15 tickets earns a step
+
+Paying for a cart that takes a fan past 15, 30 or 45 earns them a reward. `C-1004` has 40
+tickets and 6 seats waiting (40 + 6 = 46, past 45). `C-1001` has 14 and 2 (14 + 2 = 16,
+past 15). Both cross.
+
+**It's always one step, never a jump to the top.** That's what makes it work for both
+sides: the fan gets something real, and the club's cost is bounded by a single tier gap
+rather than by how far the fan happens to sit from the best seats in the ground. A step
+up from the Upper Deck costs $53 − $35 = **$18 a seat**. A step down in price from the
+Club costs $90 − $53 = **$37 a seat**. Neither is open-ended.
 
 **The whole cart moves, not the seat that tipped them over.** A fan crossing their
 fifteenth ticket buying two seats isn't going to sit in the Club while whoever they came
-with stays in the Upper Deck. So it's priced for every seat — $84 for `C-1001`'s pair —
-and the email says they'll be sitting together.
+with stays in the Lower Bowl. So it's priced across every seat:
+
+```
+C-1001 pays $96 for 2 Lower Bowl seats     →  $48 a seat
+one step up is the Club                    →  $90 a seat
+                                              ───────────
+the club gives up                             $42 a seat  x 2  =  $84
+```
 
 **If they're already in the best seats, the reward moves to their next order.**
 `C-1004` is in the Club — nowhere to move him — so nothing comes off the cart in front of
-him. Next time he buys, those Club seats are his at Lower Bowl prices, worth about $222
-on an order this size.
+him. Next time he buys, those Club seats are his at Lower Bowl prices:
+
+```
+Club seats                                    $90 a seat
+charged at one step down, the Lower Bowl      $53 a seat
+                                              ───────────
+the club gives up                             $37 a seat  x 6  =  $222
+```
 
 Deliberately not applied to the cart he's mid-way through. Re-pricing an order someone is
 already paying for is a different and messier thing than moving where they sit, and it
 hands cash back on a sale the club was making anyway.
 
-The two rewards come to roughly the same value — 12% of what `C-1001` spent to earn
-theirs, 16% of what `C-1004` spent. They just aren't the same *kind* of money, and the
-card says which: an upgrade gives away seats that might not have sold, a price cut gives
-away cash.
+The two come to roughly the same share of what each fan spent to earn them:
+
+```
+C-1001   15 tickets at $48  =  $720 spent   →   $84 back   =  12%
+C-1004   15 tickets at $90  = $1,350 spent  →  $222 back   =  16%
+```
+
+They aren't the same *kind* of money, though, and the card says which: an upgrade gives
+away seats that might not have sold, a price cut gives away cash.
 
 That matters because it's the only thing the club gives its best fans. They're the ones
 who correctly get no win-back offer — they were coming back anyway — which leaves them
@@ -115,12 +155,12 @@ produces an offer.
 
 ### Which carts get an offer
 
-Don't ask "how do we win this cart back?" The easiest ones to win back were coming back
-anyway, and you can't tell from the result: send a discount, they buy, it looks like it
-worked, and you paid for a sale you already had.
+"How do we win this cart back?" is the wrong question. The easiest ones were coming back
+anyway, and you can't tell from the result — they buy, it looks like it worked, and you
+paid for a sale you already had.
 
 Ask instead: **would this fan have come back on their own?** The less likely that is, the
-more we're willing to give. Not the size of the cart, not how loyal they are.
+more we'll give. Not the size of the cart, not how loyal they are.
 
 How recently they left caps what we can *spend*, not whether we talk to them. Under two
 hours, nothing. Two to 24 hours, a free reminder. After that, real offers.
@@ -128,51 +168,55 @@ hours, nothing. Two to 24 hours, a free reminder. After that, real offers.
 | cart | | what happens |
 |---|---|---|
 | `C-1004` | $540 Club, 40 tickets, left **1 hour ago** | nothing yet |
-| `C-1001` | 14 tickets, bought 21 days ago, left 3 hours ago | **reminder, free** |
-| `C-1002` | never bought anything, 4 seats, 26 hours | **15% off, $21** |
-| `C-1005` | one ticket 300 days ago, cold 4 days | **10% off, $7** |
+| `C-1001` | 14 tickets, bought 21 days ago, left 3 hours ago | **reminder**, free |
+| `C-1002` | never bought, 4 seats, $140, 26 hours | **15% off** · 140 × 0.15 = **$21** |
+| `C-1005` | one ticket 300 days ago, $70, cold 4 days | **10% off** · 70 × 0.10 = **$7** |
 | `C-1003` | no email opt-in | **blocked** |
 
-`C-1004` is the trap. Biggest number on the page, and the likeliest person on it to
-finish by himself — forty tickets, bought nine days ago, walked away an hour ago.
-Discounting him buys a sale the club already had, and teaches its best buyer that walking
-away gets rewarded.
+`C-1004` is the trap — the biggest number on the page, and the likeliest person on it to
+finish by himself. Discounting him buys a sale the club already had.
 
 Leaving your best fans alone is right and looks awful — nothing for the man with forty
-tickets, 15% off for a stranger. So **every 15 tickets earns a free seat upgrade**. It's
-owed rather than spent, so it never competes with the win-back logic. Both held fans
-cross one on the cart they abandoned.
+tickets, 15% off for a stranger. So **every 15 tickets earns a step**: up a section, or
+down a price tier if they're already at the top. It's owed rather than spent, so it never
+competes with the win-back logic. Both held fans cross one here.
 
 ### What we offer, and what it costs
 
 Six fixed options: nothing, a reminder, waive the booking fee, a free seat upgrade, 10%
-off, 15% off. The agent picks one by name; it can't invent one.
+off, 15% off — picked by name, never invented.
 
-Pick the smallest thing that could work; if two would, the cheaper one. Those differ:
-waiving the booking fee — the 12% checkout adds on top — feels smaller than a discount,
-but on a $140 cart it costs **$16.80** against **$14** for 10% off.
+Take the smallest thing that could work; if two would, the cheaper one. Those differ —
+waiving the 12% booking fee feels smaller than a discount and costs more:
 
-Price everything honestly. **A free upgrade isn't free** — moving a fan from a $35 seat
-to a $53 one loses the club the $18 gap on a seat someone else would have bought:
+```
+C-1002's cart, $140:   waive the fee   140 x 0.12  =  $16.80
+                       10% off         140 x 0.10  =  $14.00
+```
 
-| for a $70 cart | costs | club keeps |
-|---|---|---|
-| free upgrade | **$36** | $34 |
-| 10% off | **$7** | $63 |
+**And a free upgrade isn't free.** It hands over a seat someone else would have bought,
+and only gives back the cheaper one it frees:
 
-Half the cart, to save the cart. Nothing may cost more than a fifth of what it saves.
+```
+C-1005 — 2 Upper Deck seats, $70 cart
+  give away 2 Lower Bowl    $53 x 2 = $106
+  free up   2 Upper Deck    $35 x 2 =  $70
+  upgrade costs                        $36   club keeps $34
+  10% off        $70 x 0.10 =           $7   club keeps $63
+```
+
+Half the cart, to save the cart. Nothing may cost more than a fifth of what it saves:
+70 × 0.2 = $14 here, so the upgrade is off the menu.
 
 ### What I didn't build
 
-**No sending.** The agent proposes, the marketer copies ready-made email and SMS text.
+**No sending.** The agent proposes; the marketer copies ready-made email and SMS text.
 There's no CRM, and a sender would be the least useful thing in the sprint.
 
 **No spend budget.** Every offer is approved one at a time with its price showing, so
-nobody overspends by accident. First thing to add the day this sends without a person
-watching.
+nobody overspends by accident. First thing to add the day this sends unwatched.
 
 **Nothing personalised past the segment**, no multi-team version, no self-serve rules.
-One club, one marketer, one screen.
 
 ---
 
@@ -203,13 +247,24 @@ money under 24, the offer exists on the list, no offer costs more than a fifth o
 cart, and the price the model claimed matches the price we calculate. **These are what
 would actually run every morning.** Sixty generated carts pass them.
 
-**3. Ten percent of fans get nothing, deliberately.** Redemption rate lies — it counts
-the fans who were coming back anyway. So a tenth of the ones we'd have contacted are
-left alone, and the gap between the two groups is what the offers actually rescued. The
-same fan is always on the same side of that line, so the comparison holds.
+**3. Ten percent hear nothing, deliberately — but they still get what they've earned.**
+Redemption rate lies: it counts the fans who were coming back anyway. So a tenth of the
+fans we'd have contacted get no message, and the gap between the two groups is what the
+messages actually rescued. The same fan is always on the same side of that line, so the
+comparison holds week to week.
+
+**The line is drawn around contact, never around entitlement.** A fan in the control
+group who crosses 15 tickets still gets their upgrade when they check out — we just don't
+tell them it's coming. Withholding something a fan has earned to make an experiment
+tidier isn't a trade worth making, and it would be the one thing here most likely to
+actually lose someone's trust.
+
+That does mean the two kinds of message have to be measured apart. "Here's 15% off" and
+"you've earned an upgrade" are different things being tested on different people for
+different reasons. Pool them and you get a number that describes neither.
 
 **4. What the marketer clicks.** Every approve, edit and reject is a verdict on the
-agent. If they're rewriting four out of ten upgrades, the upgrade rule is wrong. It's
+agent. If four out of ten reminders come back rewritten, the reminder rule is wrong. It's
 free, it needs no extra tooling, and it's the one signal one engineer can keep running.
 
 ### What it costs to run
@@ -286,12 +341,16 @@ I built this with Claude Code. Three points where I didn't take what it gave me.
 **What I did:** didn't accept it. A better seat is worth more, and someone else could
 have bought it. Nobody handing over money doesn't make it free.
 
-So I made it work the number out. A fan with **2 Upper Deck seats at $35 — a $70 cart**:
+So I made it work the number out, for a fan with **2 Upper Deck seats at $35 — a $70
+cart**:
 
-| | costs the club | club keeps |
-|---|---|---|
-| move them to Lower Bowl ($53 seats) | **$36** | **$34** |
-| take 10% off instead | **$7** | **$63** |
+```
+give away 2 Lower Bowl seats   $53 x 2  =  $106   revenue we can't collect
+free up   2 Upper Deck seats   $35 x 2  =   $70   revenue we can
+                                           ─────
+the upgrade costs                            $36   →  club keeps $34
+10% off instead    $70 x 0.10  =              $7   →  club keeps $63
+```
 
 Giving away half the cart to save it. The "free" option was the most expensive thing on
 the list, and it was being recommended because nobody had priced it.
