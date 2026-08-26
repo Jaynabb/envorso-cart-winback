@@ -1,8 +1,8 @@
 # Cart Win-Back Agent — Envorso Sports
 
-An agentic system that reads stale ticket carts for the Seattle Seawolves, decides
-which are worth acting on, and proposes a specific offer for a marketer to approve,
-edit or reject. Nothing reaches a fan without a person saying yes.
+Fans leave tickets in their cart. This reads the stale ones every day, works out which
+are worth chasing, and puts a specific offer in front of a marketer to approve, edit or
+reject. Nothing reaches a fan without a person saying yes.
 
 **Run it:**
 
@@ -12,10 +12,10 @@ cp .env.example .env.local     # add your ANTHROPIC_API_KEY
 npm run dev                    # http://localhost:3000
 ```
 
-Needs Node 22.18+. Two checks from the command line:
+Needs Node 22.18+. Two things you can run from the terminal:
 
 ```bash
-node --env-file=.env.local scripts/run.mts    # the agents, in the terminal
+node --env-file=.env.local scripts/run.mts    # the agents, no UI
 node --env-file=.env.local scripts/eval.mts   # score them against the answer key
 ```
 
@@ -23,241 +23,205 @@ node --env-file=.env.local scripts/eval.mts   # score them against the answer ke
 
 ## How it works
 
-Four stages. Three of them are agents, and the first one isn't a model at all.
+Four steps. The first one is just rules — no AI at all.
 
 ```
-cart ─▶ [0] POLICY ─▶ [1] ANALYST ─▶ [2] STRATEGIST ─▶ [3] REVIEWER ─▶ marketer
-        rules, no AI   what kind      what to offer     try to reject   approve
-        no cost        of fan is      from a fixed      it, from the    edit or
-                       this?          menu             facts alone     reject
+cart ─▶ RULES ─▶ AGENT 1 ─▶ AGENT 2 ─▶ AGENT 3 ─▶ marketer
+        can we    who is    what do    should we   approves
+        contact   this      we give    send this?  edits or
+        them?     fan?      them?                  rejects
 ```
 
-Each stage is handed the **previous stage's typed output**, not the raw cart, and each
-is deliberately kept in the dark about something.
+Each step only sees what the step before it produced. That's on purpose. It stops one
+model deciding both *who this fan is* and *what they deserve*, then bending the first to
+justify the second.
 
-**[0] Policy — `lib/policy.ts`, no model involved.** Consent, timing, suppression, and
-the per-cart spend ceiling. You shouldn't need a language model to notice you don't have
-permission to email someone. `C-1003` is stopped here and never reaches an agent.
+**Rules first.** No email consent, no contact — `C-1003` stops here and never reaches an
+agent. Left the cart under two hours ago? Nothing, they might still be paying. Under 24
+hours? A free reminder, but no money.
 
-Timing isn't a block, it's a ceiling on what contact may cost: under 2 hours nothing at
-all, because they may still be at the checkout; between 2 and 24 hours a free reminder
-and nothing dearer; after that, real offers are available.
+**Agent 1 works out who the fan is.** Regular, first-timer, gone a year. And the
+question everything hangs on: would they have come back without us? **It never sees the
+cart value.** Money can't tell you whether someone returns.
 
-**[1] Analyst — `lib/analyst.ts`.** Says what kind of fan this is and how likely they
-were to come back with no contact from us. It is forbidden from proposing an offer, and
-**it is never shown the cart value** — money can't tell you whether someone returns, so
-it isn't given any. Separating the read from the decision is what stops the read being
-quietly bent to justify a discount.
+**Agent 2 picks the offer** from a fixed list. It gets Agent 1's answer, not the raw
+cart. It can only pick from the list, so it can't invent an upgrade to a section that's
+sold out.
 
-**[2] Strategist — `lib/strategist.ts`.** Picks from a closed catalog by ID. It works
-from the analyst's read, not the raw row, so it can't re-derive a more convenient view
-of the fan. It can't invent an offer the club doesn't sell, because there's no field to
-write one in.
+**Agent 3 argues against it.** It sees the fan and the offer, but **not why Agent 2
+chose it.** A confident-sounding reason is the easiest thing for a model to produce, and
+if you show it one, it grades the reason instead of the offer.
 
-**[3] Reviewer — `lib/reviewer.ts`.** Tries to find what's wrong with the proposal, and
-**never sees the strategist's reasoning** — only the facts and the offer. A fluent
-justification is the easiest thing in the world for a model to produce, and a reviewer
-shown the argument ends up grading the argument. Blind, the only thing it can do is
-work out for itself whether these facts justify this offer.
+**Then a person decides.** Nothing sends itself.
 
-**[4] The marketer.** Nothing sends itself.
+### How this breaks
 
-### How this design fails, and what catches it
+**Agent 2 talks itself into an offer.** Tell it a fan was coming back anyway and it will
+still find a reason to give them 15% off, because it thinks its job is to produce
+offers. The output looks fine. The reasoning reads well. It's wrong.
 
-**The strategist rationalises.** Hand it a read saying "this fan is coming back anyway"
-and it will still propose 15% off, with a confident, plausible reason — because it
-believes its job is to produce offers. Valid output, good prose, wrong answer. This is
-the failure that looks right, and it happened on the first run.
+That happened on the first run. Four things stop it now:
 
-Four things catch it, cheapest first:
+1. "No offer" is a normal choice on the list, not a special case.
+2. Agent 3 never sees Agent 2's reasoning, so it can't be talked round.
+3. A plain arithmetic check: an offer can't be bigger than the fan justifies, or so
+   small it isn't worth sending. Good prose doesn't get past arithmetic.
+4. The answer key catches it drifting between runs.
 
-1. `no_offer` is a first-class value in the same enum as every other offer, demonstrated
-   in the prompt — not an exception path.
-2. The reviewer only ever sees the analyst's read, so it can't inherit the strategist's
-   reasoning.
-3. **A deterministic check**: how strong an offer is may not exceed what the read allows,
-   and may not fall below what's worth sending. That's arithmetic, so it holds however
-   good the prose was.
-4. The hand-written answer key catches drift between runs.
+**If a bad one gets through anyway**, the marketer edits or rejects it on the card. Every
+edit and reject is a signal — see Section B.
 
-**And when the agent is wrong anyway,** the marketer edits or rejects it on the card,
-with the whole chain visible behind *"How it got here."* Every edit and reject is a
-label — see Section B.
-
-**It fails closed.** If any stage errors or returns something invalid, the cart holds.
-There is no path through this system where something breaking produces an offer.
+**If anything breaks, the cart holds.** There's no path through this where a failure
+produces an offer.
 
 ---
 
 ## Section A — Written analysis
 
-### Which carts deserve an offer
+### Which carts get an offer
 
-"How do we win this cart back?" is a trap, because the easiest carts to win back are
-the ones that were coming back anyway — and you can't tell from the outcome. You send a
-discount, the fan buys, the dashboard says it worked, and you paid for a sale you
-already had.
+Don't ask "how do we win this cart back?" The easiest carts to win back are the ones
+coming back anyway, and you can't tell from the result. Send a discount, they buy, it
+looks like it worked. You paid for a sale you already had.
 
-So the system asks: **would this fan have come back on their own?** How strong an offer
-can be tracks how *unlikely* that is. Never the size of the cart, never how loyal they
-are.
+Ask instead: **would this fan have come back on their own?** The less likely that is,
+the more we're willing to give. Not the size of the cart. Not how loyal they are.
 
-**How recently they left caps the cost, not the contact.** Under two hours, nothing —
-they may still be at the checkout. Two to 24 hours, a free reminder and no money. After
-that, real offers.
+How recently they left decides what we can *spend*, not whether we talk to them. Under
+two hours, nothing. Two to 24 hours, a free reminder. After that, real offers.
 
-On the five sample carts:
-
-| cart | | decision |
+| cart | | what happens |
 |---|---|---|
-| `C-1004` | $540 Club, 40 tickets, left **1 hour ago** | **hold** |
+| `C-1004` | $540 Club, 40 tickets, left **1 hour ago** | nothing yet |
 | `C-1001` | 14 tickets, bought 21 days ago, left 3 hours ago | **reminder, free** |
-| `C-1002` | never purchased, 4 seats, 26 hours | **15% off, $21** |
+| `C-1002` | never bought anything, 4 seats, 26 hours | **15% off, $21** |
 | `C-1005` | one ticket 300 days ago, cold 4 days | **10% off, $7** |
 | `C-1003` | no email opt-in | **blocked** |
 
-`C-1004` is the trap: the biggest number on the page, and a fan with forty tickets who
-bought nine days ago and walked away an hour ago is the likeliest person here to finish
-by himself. `C-1003` never reaches a model at all — no consent, no channel, no decision
-to make.
+`C-1004` is the trap. Biggest number on the page. He's also a fan with forty tickets who
+bought nine days ago and walked away an hour ago — the most likely person here to finish
+on his own. Discounting him wastes money and insults him.
 
-### The offer logic
+### What we offer, and what it costs
 
-Offers come from a closed catalog — no offer, reminder, fee waiver, seat upgrade, 10%,
-15% — and the agent returns an ID from it. It cannot invent an offer the club doesn't
-sell, because there is no field to write one in.
+Six options, fixed: nothing, a reminder, waive the fees, a free seat upgrade, 10% off,
+15% off. The agent picks one by name and can't make one up.
 
-The rule is: take the **weakest** offer that could plausibly work, and where two are
-equally plausible, the cheaper one. Strength is what an offer teaches a fan about what
-a ticket is worth. Cost is dollars. They do not move together.
+The rule is to pick the smallest thing that could work, and if two would work, the
+cheaper one. Those aren't the same thing — waiving fees on four seats costs $24, while
+15% off that same cart costs $21.
 
-Pricing every offer honestly changed the answers. A "free" upgrade is not free — it
-hands over a seat someone else would probably have bought and only gives back the
-cheaper one it frees. On `C-1005` that is **$36 against $7** for a 10% discount: half
-the cart, to save the cart. Nothing may exceed a fifth of the cart it is rescuing.
+Then price everything honestly, which changed the answers. **A free upgrade isn't free.**
+Move a fan from a $35 seat to a $53 one and the club gives up the $18 difference on a
+seat someone else would have bought:
 
-### What I would not do yet
+| for a $70 cart | costs the club | club keeps |
+|---|---|---|
+| free upgrade | **$36** | $34 |
+| 10% off | **$7** | $63 |
 
-**No sending.** The agent proposes; the marketer copies ready-made email and SMS text.
-There is no CRM, and a sender would be the least valuable thing in the sprint.
+Upgrading gives away half the cart to save the cart. Nothing may cost more than a fifth
+of the cart it's rescuing.
 
-**No spend budget.** Every offer is approved one at a time with its price on the card,
-so nobody can overspend by accident — a daily cap would guard a failure mode the
-approval gate already prevents. It's the first thing to add the day this sends without
-a person in front of it, and not before.
+### What I didn't build
 
-**No personalisation past the segment**, no multi-team abstraction, no self-serve rule
+**No sending.** The agent proposes, the marketer copies ready-made email and SMS text.
+There's no CRM, and building a sender would be the least useful thing in the sprint.
+
+**No spend budget.** Every offer is approved one at a time with its price on the card, so
+nobody can overspend by accident. A cap would guard something the approval step already
+prevents. First thing to add the day this sends without a person in front of it.
+
+**Nothing personalised past the segment**, no multi-team version, no self-serve rule
 editing. One club, one marketer, one screen.
 
 ---
 
 ## Section B — Agent quality and failure plan
 
-### How I would know the offers are actually good
+### How I'd know the offers are any good
 
-**Four checks, and only two of them scale.**
+**Four checks. Only two of them scale.**
 
-**1. An answer key, written before the model ran.** I decided what each of the five
-carts deserved, and why, before an agent saw the data — so my judgement is the
-benchmark and the agent is graded against it, rather than me reading its output and
-talking myself into agreeing. `scripts/eval.mts` scores decision, offer, and the
-read of return-likelihood. It currently scores 100% on all four lines. It needs labels,
-so it does not scale past carts I sat down and reasoned about.
+**1. An answer key, written before the model ran.** I decided what each of the five carts
+deserved, and why, before an agent saw the data. That way my judgement is the benchmark,
+instead of me reading its output and talking myself into agreeing. `scripts/eval.mts`
+scores it. It's at 100% right now. It needs me to have labelled the carts, so it stops
+working past the five I sat down and thought about.
 
-**2. Invariants, which need no labels.** Rules checkable with arithmetic on any day's
-carts: consent is never violated, nothing at all goes out under two hours and nothing
-that costs money under 24, the offer exists in the catalog, no offer exceeds a fifth of
-its cart, the cost the model claimed matches what the catalog computes, and offer
-strength stays inside both the ceiling and the floor. These are what would actually run every morning. Sixty
-generated carts pass them.
+**2. Rules that check themselves.** Things you can verify with arithmetic on any day's
+carts: consent is never broken, nothing goes out under two hours and nothing costing
+money under 24, the offer exists on the list, no offer costs more than a fifth of its
+cart, and the price the model claimed matches the price we calculate. **These are what
+would actually run every morning.** Sixty generated carts pass them.
 
-**3. A 10% holdout — the only honest measure of whether this works at all.**
-Redemption rate is a vanity metric: it counts fans who were coming back anyway. So a
-tenth of qualified carts deliberately get nothing, and the difference between the two
-groups is what the offers actually rescued. Assignment is a hash of the fan ID, so a
-fan is always on the same side — a fan who flips groups is in neither.
+**3. Ten percent of fans get nothing, deliberately.** Redemption rate lies — it counts
+the fans who were coming back anyway. So a tenth of the ones we'd have contacted are
+left alone, and the gap between the two groups is what the offers actually rescued. The
+same fan is always on the same side of that line, so the comparison holds.
 
-**4. The marketer's clicks, which are free labels.** Every approve, edit and reject is
-a judgement on the agent. Edit rate per offer type is the daily health metric: if
-marketers rewrite 40% of upgrades, the upgrade rule is wrong. No platform required, and
-it is the one signal a single engineer can actually maintain.
+**4. What the marketer clicks.** Every approve, edit and reject is a verdict on the
+agent. If they're rewriting four out of ten upgrades, the upgrade rule is wrong. It's
+free, it needs no extra tooling, and it's the one signal one engineer can keep running.
 
-### What it costs, and where the capability goes
+### What it costs to run
 
-| stage | model | why |
+| step | model | why |
 |---|---|---|
-| Policy | none | consent and arithmetic don't need a model |
-| Analyst, strategist | Haiku 4.5, `temperature: 0` | classification against a tight schema is what a small fast model is for |
-| Reviewer | Haiku, **escalating to Sonnet** when the offer is a cash discount or costs over $15 | pay for the better model where money actually leaves the building |
+| Rules | none | consent and arithmetic don't need a model |
+| Agents 1 and 2 | Haiku 4.5 | sorting things into categories is what a small fast model is for |
+| Agent 3 | Haiku, **Sonnet** when the offer is cash or over $15 | pay more only where money actually leaves |
 
-Measured, not estimated: **about 3 cents for the five sample carts, 34 cents for sixty
-— roughly half a cent a cart.** At the Seawolves' volume this is not a number anyone
-needs to manage, which is itself the point: the expensive decision here is the offer,
-not the inference.
+Measured, not guessed: **3 cents for the five carts, 34 cents for sixty. About half a
+cent each.**
 
-The escalation rule is the trade-off. Reviewing a reminder with a frontier model is
-paying more to check something that costs nothing. Reviewing a 15% discount is worth it,
-because that's the call that ends up on someone's card statement. Same reason the policy
-gate isn't an agent — an LLM asked to enforce a consent rule will enforce it *almost*
-every time, and "almost" isn't a standard you put in front of a fan.
+The escalation is the trade-off. Checking a free reminder with an expensive model is
+paying more to check something that costs nothing. Checking a 15% discount is worth it —
+that one ends up on someone's card statement.
 
-### What could make it produce a bad offer without me noticing
+### How it could be wrong without me seeing
 
-**An agent inventing its own rule, fluently.** This happened. The reviewer started
-arguing, twice, that the club shouldn't spend on fans who "haven't converted once" —
-prudent-sounding, confident, and the opposite of the rule the system runs on. Nothing in
-the output looked wrong. Under my rule, a fan with no history is precisely the case where
-an offer is justified, because there is no evidence they return without one.
+**It reasons correctly from numbers I made up.** This is the one that cost money. My
+price list said a seat upgrade cost nothing, so the agents handed them out. At sixty
+carts they were giving away a third more than they should have. Nothing in the output
+looked wrong, because nothing *was* wrong — except my numbers.
 
-**An agent reasoning correctly over numbers I made up.** This is the one that actually
-cost money, and it is subtler. My cost model reported a seat upgrade as "$0 cash", so
-the agent handed them out — and at 60 carts it was a third over any sensible budget.
-The reviewer had been telling me for hours that "a small discount costs less than the
-inventory required." It was right. I had overruled it by printing `$0` in the menu it
-reads. Every disagreement the agent had with my answer key traced back to a price I
-had invented; once the prices were real, agreement went from 0% to 100%.
+Agent 3 had been telling me for hours: *"a small discount costs less than the inventory
+required."* It was right. I'd overruled it by writing `$0` on the menu it reads. Once
+the prices were real, its agreement with my answer key went from 0% to 100%.
 
-**The wording of my own prompt changing the decision.** Three times. The reviewer
-rejected an upgrade as "invisible — they won't know what one section better means",
-which was true of my internal label and false of the email a fan actually gets. It
-read "no cash, but…" next to a $38 figure and approved it on the grounds that it cost
-no cash. And "cheapest tool" was ambiguous once prices were honest, because waiving
-fees on four seats costs more than 15% off the same cart. **The prompt is not
-documentation of the system. It is an input to it.**
+**It invents a rule and states it confidently.** Agent 3 twice argued the club shouldn't
+spend on fans who "haven't converted once." Sensible-sounding. Nobody gave it that rule,
+and it's the opposite of the one this system runs on — a fan with no history is exactly
+who an offer is for, because there's no evidence they come back without one.
 
-### How that gets caught before it reaches a fan
+**My wording changes the decision.** Three times. It rejected an upgrade as "invisible"
+because of what I'd called it internally. It read "no cash, but…" next to a $38 figure
+and treated it as free. "Cheapest tool" turned out to be ambiguous once prices were
+honest. **A prompt isn't a description of the system. It's part of it.**
 
-**A person approves every single offer**, with the price and the reasoning chain on the
-card. That is the hard gate, and it is why there is no spend cap: nothing goes out
-unread.
+### What stops a bad offer reaching a fan
 
-**The reviewer never sees the strategist's reasoning** — only the facts and the offer.
-A fluent justification is exactly what a rationalising agent produces, and a reviewer
-shown the argument grades the argument. Blind, the only thing it can do is work out for
-itself whether these facts justify this offer.
+**A person approves every single one**, with the price and the full reasoning on the
+card. That's the real gate, and it's why there's no spend cap — nothing goes out unread.
 
-**Every invariant has an enforcement point.** This was a real lesson: the per-cart cap
-was *detected* for three runs while the pipeline cheerfully let the offer through,
-because nothing upstream removed it from the menu. A check with nothing in front of it
-is a report, not a guard rail. The agent is now never shown an option it isn't allowed
-to pick.
+**Agent 3 is kept in the dark** about why the offer was chosen, so it can't be persuaded
+by a well-written reason.
 
-**It fails closed.** If any stage errors or returns something invalid, the cart holds.
-There is no path through this system where something breaking produces an offer.
+**Every check has something enforcing it.** A lesson from this build: the per-cart price
+cap was *reported* for three runs while the pipeline let the offer through anyway,
+because nothing removed it from the menu. A check with nothing in front of it is a
+report, not a guard rail.
 
-**Assumptions get a sensitivity check.** Where a number is a guess, I check whether the
-answer moves when I'm wrong about it. Lower Bowl is $48 in one cart and $58 in another,
-and I use $53 — across that whole range the upgrade stays over the cap, so the decision
-never flips and the uncertainty doesn't matter.
+**It fails closed.** Anything breaks, the cart holds.
 
-Where it does matter, I take the conservative side rather than estimating. An upgrade's
-cost depends on whether the better seat would have sold: if it would, the cost is the
-full price gap; if the section was going half empty, it's nothing. I had invented fill
-rates for that — 70% and 55% — until it became clear they were doing real work in real
-arithmetic. The Seawolves report selling out Starfire, so the gap is both the realistic
-case and the expensive one, and pricing at it can overstate a cost but never hide one.
-Per-fixture fill lives in the ticketing platform Envorso runs; that's a lookup, not
-something I should be guessing at.
+**Guesses get tested.** Where a number is a guess, I check whether the answer changes if
+I'm wrong about it. Lower Bowl seats are $48 in one cart and $58 in another — anywhere in
+that range the upgrade is still too expensive, so it doesn't matter. Where it does
+matter I take the expensive assumption rather than estimating. An upgrade only costs the
+full price gap if that better seat would have sold, and the Seawolves report selling out,
+so that's both the realistic case and the cautious one. The real per-match numbers are in
+Envorso's own ticketing platform. That should be a lookup, not something I guess at.
 
 ---
 
@@ -267,48 +231,44 @@ I built this with Claude Code. Three points where I didn't take what it gave me.
 
 ### 1 · The upgrade it told me was free
 
-**What I asked for:** the agent was recommending a free seat upgrade for a fan who'd
-drifted away. I wanted the dollar cost before I accepted the recommendation.
+**What I asked:** what does a free seat upgrade actually cost us, in dollars?
 
-**What it gave me:** free. No cash, just seats.
+**What it said:** free. No cash, just seats.
 
-**What I rejected, and why:** a better seat is worth more than the one they had, and
-someone else could have bought it. Nobody handing over money doesn't make it free. I
-made it work out the real number.
+**What I did:** didn't accept it. A better seat is worth more, and someone else could
+have bought it. Nobody handing over money doesn't make it free.
 
-Take a fan with **2 Upper Deck seats at $35 each — a $70 cart**:
+So I made it work the number out. A fan with **2 Upper Deck seats at $35 — a $70 cart**:
 
-| | what it costs the club | what the club keeps |
+| | costs the club | club keeps |
 |---|---|---|
-| Move them up to Lower Bowl ($53 seats) | **$36** — the $18 gap, twice | **$34** |
-| Take 10% off instead | **$7** | **$63** |
+| move them to Lower Bowl ($53 seats) | **$36** | **$34** |
+| take 10% off instead | **$7** | **$63** |
 
-Upgrading gives away **half the cart to save the cart**. The discount gives away a
-tenth. The "free" option was the most expensive thing in the catalog, and it was being
-recommended because nothing had priced it.
+Giving away half the cart to save it. The "free" option was the most expensive thing on
+the list, and it was being recommended because nobody had priced it.
 
-**Where those numbers come from.** Ticket prices are read off the carts themselves — a
-$140 cart with 4 seats means Upper Deck is $35. The $18 gap assumes the better seat
-would have sold, which is the realistic case here because the Seawolves report selling
-out Starfire's 4,000 seats, and it's the conservative one — if a section doesn't sell
-out, the upgrade costs less, down to nothing.
+**Where those numbers come from:** ticket prices are read off the carts — a $140 cart
+with 4 seats means Upper Deck is $35. The $18 gap assumes the better seat would have
+sold, which is the realistic case since the Seawolves report selling out, and the
+cautious one, because if it wouldn't have sold the upgrade costs less.
 
-**What changed:** every offer is now priced as cash plus revenue given away, and nothing
-may exceed a fifth of the cart it's rescuing. The agent stopped recommending upgrades on
-these carts entirely. Its agreement with the answers I'd written by hand went from 0% to
-100% — every disagreement we'd had traced back to a price that was wrong.
+**What changed:** every offer is now priced properly, and nothing can cost more than a
+fifth of its cart. The agents stopped recommending upgrades. Their agreement with the
+answers I'd written by hand went from 0% to 100% — every argument we'd had traced back
+to a price that was wrong.
 
-### 2 · The stranger who was about to get a better deal than a six-year fan
+### 2 · The stranger about to get a better deal than a six-year fan
 
-**What I asked for:** whether it makes sense to discount a first-time buyer, hoping it
-brings them back for another game.
+**What I asked:** does it make sense to discount a first-time buyer, hoping they come
+back for another game?
 
-**What it gave me:** yes, and it showed me the system already does it — 15% off, the
-deepest offer in the catalog, because a first-timer is the one fan there's no evidence
-about. That reasoning is sound. A first ticket isn't $140, it's the start of a
-relationship, and $21 to find out is cheap.
+**What it said:** yes — and it showed me the system already does it. 15% off, the biggest
+offer available, because a first-timer is the one fan there's no evidence about. That
+reasoning is right. A first ticket isn't $140, it's the start of a relationship, and $21
+to find out is cheap.
 
-**What I stopped, and why:** here's what that same screen was about to show a marketer.
+**What I stopped:** here's what that same screen was about to show a marketer.
 
 | cart | fan | offer |
 |---|---|---|
@@ -317,41 +277,37 @@ relationship, and $21 to find out is cheap.
 
 You can't hand a stranger a better deal than a six-year season-ticket holder. This club
 has a few thousand supporters and they know each other. The brief warns about tone-deaf
-offers to loyal fans — and the system had found a way to be tone-deaf by saying nothing
-at all.
+offers to loyal fans — and the system had found a way to be tone-deaf by staying silent.
 
 **What changed, and what didn't:** the decisions stayed. Leaving the loyal fan alone is
-right — he was coming back on his own, and 15% off one cart isn't what starts that
-conversation. What changed is that the blank now says something. A hold on one of the
-club's core fans carries a note: this is who they are, leaving them alone is correct,
-and if you want to do something for them it shouldn't be money.
+right, and 15% off one cart isn't what starts that conversation. What changed is that
+the blank now says something. A hold on one of the club's core fans carries a note: this
+is who they are, leaving them alone is correct, and if you want to do something for them
+it shouldn't be money.
 
-**What I decided not to build:** loyal fans need value in a currency that isn't
-discounts — recognition, first access, an upgrade when there's room in the stadium.
-That's a loyalty programme, not a cart tool. So the system doesn't pretend to solve it.
-It puts it in front of the person who can.
+**What I didn't build:** loyal fans need looking after in a currency that isn't
+discounts — recognition, first access, better seats when there's room. That's a loyalty
+programme, not a cart tool. The system doesn't pretend to solve it. It puts it in front
+of the person who can.
 
 ### 3 · Four words that cut the day's spend by two thirds
 
-**What I asked for:** the reviewer had turned down a free seat upgrade, saying it was
-*"invisible — they won't know what 'one section better' means."* I asked why we didn't
-just call it a seat upgrade, so the customer would understand it.
+**What I asked:** Agent 3 had refused a free seat upgrade, calling it *"invisible — they
+won't know what 'one section better' means."* I asked why we didn't just call it a seat
+upgrade, so the customer would understand it.
 
-**What it gave me:** the objection was true — of the wrong thing. Our internal menu
-called it *"free upgrade, one section better."* The email a fan actually receives says
-*"we'd like to move you up to the Lower Bowl."* The agent was reasoning about my label,
-not about anything a fan would ever read, and turning down a free offer because of it.
+**What I found:** the objection was true — about the wrong thing. My internal list called
+it *"free upgrade, one section better."* The email a fan actually gets says *"we'd like
+to move you up to the Lower Bowl."* The agent was judging my label, not anything a fan
+would ever read, and turning down a free offer because of it.
 
-**What I changed:** the menu the agents see now uses the same words the fan gets — *Free
-upgrade from Upper Deck to Lower Bowl* — instead of the catalog's generic label.
+**What I changed:** the list the agents see now uses the same words the fan gets.
 
-**What it did:** the first-time buyer's offer moved from 10% off to the free upgrade,
-and the day's cash spend dropped from $21 to $7. A naming choice inside my own prompt
-had been costing the club money.
+**What happened:** the first-time buyer's offer moved from 10% off to the free upgrade,
+and the day's cash spend went from $21 to $7. Four words in my own prompt had been
+costing the club money.
 
-**The rule I'd take from it:** the words in a prompt aren't labels on the system, they're
-inputs to it. Three separate times a decision changed because of how I'd worded
-something — this one, a price line that said *"no cash, but…"* and got read as free, and
-the phrase *"cheapest tool"*, which is ambiguous once you know a fee waiver on four
-seats costs more than 15% off. None of those were the model being wrong. They were the
-model being right about what I actually said.
+**What I'd take from it:** the words in a prompt aren't labels on the system, they're
+part of it. Three decisions changed that day because of how I'd worded something. None
+of them were the model being wrong. They were the model being right about what I'd
+actually said.
