@@ -44,7 +44,7 @@ const SECTION_LADDER = ["Upper Deck", "Lower Bowl", "Club"] as const;
  * In production these are price levels in the ticketing platform, per fixture.
  * Envorso runs that platform, so it's a lookup rather than an average of two.
  */
-const SECTION_PRICE: Record<string, number> = {
+export const SECTION_PRICE: Record<string, number> = {
   "Upper Deck": 35,
   "Lower Bowl": 53,
   Club: 90,

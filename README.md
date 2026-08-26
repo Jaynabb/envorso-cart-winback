@@ -40,9 +40,18 @@ justify the second.
 agent. Left the cart under two hours ago? Nothing, they might still be paying. Under 24
 hours? A free reminder, but no money.
 
-This is also where loyalty lives. Every 15 tickets earns a free seat upgrade, so paying
-for a cart that takes a fan past 15, 30 or 45 earns them one. `C-1004` has 40 tickets and
-6 seats waiting; `C-1001` has 14 and 2. Both cross.
+This is also where loyalty lives. Every 15 tickets earns a free upgrade, so paying for a
+cart that takes a fan past 15, 30 or 45 earns them one. `C-1004` has 40 tickets and 6
+seats waiting; `C-1001` has 14 and 2. Both cross.
+
+**The whole cart moves, not the seat that tipped them over.** A fan crossing their
+fifteenth ticket buying two seats isn't going to sit in the Club while whoever they came
+with stays in the Upper Deck. So it's priced for every seat — $84 for `C-1001`'s pair —
+and the email says they'll be sitting together.
+
+**And it can't always be paid.** `C-1004` is already in the Club. There's nothing above
+it, so the card says so and hands the thank-you back to the marketer rather than
+promising something the club can't honour.
 
 That matters because it's the only thing the club gives its best fans. They're the ones
 who correctly get no win-back offer — they were coming back anyway — which leaves them
@@ -51,7 +60,8 @@ so it doesn't pay for a sale we already had, and it turns the one message they d
 from a nag into news:
 
 > **Your next seats earn you an upgrade.** These take you to 16 tickets with us. Every 15
-> earns a free seat upgrade — we'll move you to the Club for this one.
+> earns a free upgrade, so we'll move both of you to the Club for this match — same price,
+> and you'll be sitting together.
 
 It's a rule and not an agent, because an entitlement isn't a judgement call.
 

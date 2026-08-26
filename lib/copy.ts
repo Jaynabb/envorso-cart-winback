@@ -40,10 +40,11 @@ function seatPhrase(cart: CartFacts): string {
  */
 function milestoneLine(cart: CartFacts): string {
   const m = milestone(cart);
-  if (!m) return "";
-  const target = upgradeTarget(cart.section);
-  const upgrade = target ? ` — we'll move you to the ${target} for this one` : "";
-  return `\n\nAnd these take you to ${m.ticketsAfter} tickets with us. Every ${TICKETS_PER_UPGRADE} earns a free seat upgrade${upgrade}.`;
+  // Nothing to promise if they're already in the best seats in the ground.
+  if (!m || !m.upgradeTo) return "";
+  const party =
+    cart.seats === 1 ? "you" : cart.seats === 2 ? "both of you" : `all ${cart.seats} of you`;
+  return `\n\nAnd these take you to ${m.ticketsAfter} tickets with us. Every ${TICKETS_PER_UPGRADE} earns a free upgrade, so we'll move ${party} to the ${m.upgradeTo} for this match — same price, and you'll be sitting together.`;
 }
 
 export function buildCopy(cart: CartFacts, offerId: string): SendCopy {
@@ -54,7 +55,7 @@ export function buildCopy(cart: CartFacts, offerId: string): SendCopy {
   switch (offerId) {
     case "reminder_only":
       return {
-        subject: milestone(cart)
+        subject: milestone(cart)?.upgradeTo
           ? "Your next seats earn you an upgrade"
           : "Your Seawolves seats are still held",
         email: `Hi,
@@ -65,8 +66,8 @@ Finish up here: [CART LINK]
 
 See you at the match,
 Seattle Seawolves`,
-        sms: milestone(cart)
-          ? `Your ${seats} are still held — and they take you to ${milestone(cart)!.ticketsAfter} tickets, which earns a free seat upgrade. Finish up: [CART LINK]`
+        sms: milestone(cart)?.upgradeTo
+          ? `Your ${seats} are still held — and they take you to ${milestone(cart)!.ticketsAfter} tickets, which moves the whole party up to the ${milestone(cart)!.upgradeTo}. Finish up: [CART LINK]`
           : `Your ${seats} for the Seawolves are still held. Finish up: [CART LINK]`,
       };
 

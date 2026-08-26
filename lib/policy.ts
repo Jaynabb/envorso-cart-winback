@@ -1,5 +1,5 @@
 import type { CartFacts, Decision, FanRead } from "./schema.ts";
-import { getOffer, totalCost } from "./catalog.ts";
+import { getOffer, totalCost, upgradeTarget, SECTION_PRICE } from "./catalog.ts";
 
 /**
  * The parts of this system that are rules, not judgement.
@@ -301,6 +301,24 @@ export interface Milestone {
   at: number;
   /** Lifetime tickets once this cart is paid for. */
   ticketsAfter: number;
+  /**
+   * The section they move to, or null if they're already in the best seats.
+   *
+   * Not every milestone can be paid out. A fan whose cart is in the Club has
+   * nowhere to be upgraded to, and promising them one anyway is worse than
+   * saying nothing — that's a message the club can't honour.
+   */
+  upgradeTo: string | null;
+  /**
+   * What honouring it costs, across the WHOLE cart.
+   *
+   * The whole party moves or nobody does. A fan who crosses their fifteenth
+   * ticket buying two seats isn't going to sit in the Club while whoever they
+   * came with stays in the Upper Deck — they're at the match together. So the
+   * milestone is priced for every seat in the cart, not for the one that
+   * happened to tip them over.
+   */
+  costUsd: number;
 }
 
 /** Does paying for this cart take the fan past their next milestone? */
@@ -312,9 +330,18 @@ export function milestone(cart: CartFacts): Milestone | null {
   ) {
     return null;
   }
+
+  const upgradeTo = upgradeTarget(cart.section);
+  const paidPerSeat = cart.cart_value_usd / cart.seats;
+  const costUsd = upgradeTo
+    ? Math.round(Math.max(0, SECTION_PRICE[upgradeTo] - paidPerSeat) * cart.seats * 100) / 100
+    : 0;
+
   return {
     at: Math.floor(after / TICKETS_PER_UPGRADE) * TICKETS_PER_UPGRADE,
     ticketsAfter: after,
+    upgradeTo,
+    costUsd,
   };
 }
 
@@ -334,9 +361,13 @@ export function operatorNote(cart: CartFacts): string | null {
   // The milestone comes first, because it's the actionable one — it's a thing
   // this fan has earned rather than a thing we've decided about them.
   const m = milestone(cart);
-  if (m) {
+  if (m && m.upgradeTo) {
     notes.push(
-      `This cart takes them past ${m.at} tickets, which earns a free seat upgrade. Say so — it turns a nag into a reason to finish.`,
+      `This cart takes them past ${m.at} tickets, which earns a free upgrade — all ${cart.seats} seats to the ${m.upgradeTo}, about $${m.costUsd.toFixed(2)}. The whole party moves or nobody does; they're going together. Say so, it turns a nag into a reason to finish.`,
+    );
+  } else if (m) {
+    notes.push(
+      `This cart takes them past ${m.at} tickets, but they're already in the ${cart.section} — there's nothing to upgrade them to. Worth thanking them some other way, and that one's yours to pick.`,
     );
   }
 
