@@ -24,14 +24,13 @@
         "unknown",
         "low"
       ],
-      "preferred_offer_id": "fee_waiver",
+      "preferred_offer_id": "discount_15",
       "acceptable_offer_ids": [
-        "fee_waiver",
         "discount_15",
         "discount_10",
         "upgrade_one_tier"
       ],
-      "why": "Never purchased, so there's genuinely no history saying he comes back — the one cart here where a real offer is honest rather than lazy, and four seats of a brand new fan is the highest acquisition value in the set. Waiving the booking fee costs $16.80 (140 x 0.12) against $14 for 10% off and $21 for 15%. Slightly dearer than the 10%, and worth it: it converts him without teaching a first-time buyer that Seawolves tickets go on sale. It's also the smallest tool above the floor, which is what the rule says to reach for first. This key originally excluded it and the agent kept picking it — the agent was applying my own rule better than my key did."
+      "why": "Never purchased, so there's genuinely no history saying he comes back — the one cart here where a real offer is honest rather than lazy, and four seats of a brand new fan is the highest acquisition value in the set. 15% of $140 is $21; 10% is $14. The deeper one is defensible on a fan we have no evidence about at all, and an upgrade for four would give up ($53 - $35) x 4 = $72, so cash is the cheaper way to win him."
     },
     "C-1003": {
       "expected_outcome": "blocked",
@@ -58,7 +57,6 @@
       "acceptable_offer_ids": [
         "discount_10",
         "discount_15",
-        "fee_waiver",
         "upgrade_one_tier"
       ],
       "why": "One ticket, 300 days ago, cart cold for four days. The relationship is already gone, so the unaided return chance is near zero and a real offer is justified. A 10% discount costs $7. The upgrade is the tempting answer because it costs no cash — but moving two seats from Upper Deck to Lower Bowl gives up about $38 of expected ticket revenue, five times the discount. Cheapest tool that plausibly works means the money, not the seats."

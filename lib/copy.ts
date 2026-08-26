@@ -83,38 +83,6 @@ Seattle Seawolves`,
         })(),
       };
 
-    case "fee_waiver": {
-      const saved = offer ? offer.cashCost(cart).toFixed(2) : "0.00";
-      return {
-        subject: "We've taken the fees off your Seawolves seats",
-        email: `Hi,
-
-You left ${seats} in your cart. We've taken the service fees off — that's $${saved} — if you'd like to pick them back up.
-
-Finish up here: [CART LINK]
-
-See you at the match,
-Seattle Seawolves`,
-        sms: `Your Seawolves seats are still held and we've waived the $${saved} in fees. Finish up: [CART LINK]`,
-      };
-    }
-
-    case "upgrade_one_tier": {
-      const target = upgradeTarget(cart.section);
-      return {
-        subject: `We'd like to move you to the ${target}`,
-        email: `Hi,
-
-You left ${seats} in your cart. It's been a while since we've seen you, so we'd like to move you up to the ${target} at the price you already had.
-
-Same cost, better view. Finish up here: [CART LINK]
-
-See you at the match,
-Seattle Seawolves`,
-        sms: `We'd like to move your Seawolves seats up to the ${target} — same price. Finish up: [CART LINK]`,
-      };
-    }
-
     case "discount_10":
     case "discount_15": {
       const pct = offerId === "discount_15" ? "15%" : "10%";

@@ -176,30 +176,25 @@ competes with the win-back logic. Both held fans cross one here.
 
 ### What we offer, and what it costs
 
-Six fixed options: nothing, a reminder, waive the booking fee, a free seat upgrade, 10%
-off, 15% off — picked by name, never invented.
+Five fixed options: nothing, a reminder, a free seat upgrade, 10% off, 15% off — picked
+by name, never invented. Each is built only from what the data contains: seats, sections,
+cart value. No fees or perks, because there are none in the data.
 
-Take the smallest thing that could work; if two would, the cheaper one. Those differ —
-waiving the 12% booking fee feels smaller than a discount and costs more:
-
-```
-C-1002's cart, $140:   waive the fee   140 x 0.12  =  $16.80
-                       10% off         140 x 0.10  =  $14.00
-```
-
-**And a free upgrade isn't free.** It hands over a seat someone else would have bought,
-and only gives back the cheaper one it frees:
+Take the smallest thing that could work; if two would, the cheaper one. Those aren't the
+same test, because **a free upgrade isn't free** — it hands over a seat someone else
+would have bought and only gives back the cheaper one it frees:
 
 ```
 C-1005 — 2 Upper Deck seats, $70 cart
   give away 2 Lower Bowl    $53 x 2 = $106
   free up   2 Upper Deck    $35 x 2 =  $70
-  upgrade costs                        $36   club keeps $34
-  10% off        $70 x 0.10 =           $7   club keeps $63
+                                      ─────
+  upgrade costs                         $36   club keeps $34
+  10% off       $70 x 0.10  =            $7   club keeps $63
 ```
 
-Half the cart, to save the cart. Nothing may cost more than a fifth of what it saves:
-70 × 0.2 = $14 here, so the upgrade is off the menu.
+So the gentler-sounding offer costs five times the blunt one. Nothing may cost more than
+a fifth of what it saves: 70 × 0.2 = $14 here, so the upgrade is off the menu entirely.
 
 ### What I didn't build
 
@@ -230,13 +225,10 @@ pick between a third and two thirds of the time. That gap isn't the agent being 
 it's my key claiming a precision I don't have. Choosing between 10% and 15% on those
 carts was a coin-flip.
 
-**And three times now the key has been the thing that was wrong.** It preferred an
+**And more than once the key has been the thing that was wrong.** It preferred a free
 upgrade for `C-1005` until upgrades were priced properly and turned out to cost five
-times a discount. It excluded a booking-fee waiver for `C-1002` while the agent kept
-picking one — correctly, because my own rule says take the smallest tool above the floor,
-and I hadn't noticed the fee waiver was it. Each time the eval flagged a disagreement I'd
-assumed was the agent's fault, and each time reading it properly changed my mind rather
-than the prompt.
+times a discount. Every disagreement it flagged, I'd assumed was the agent's fault — and
+reading them properly changed my mind rather than the prompt.
 
 That's the part I didn't expect from an answer key. It isn't only a grade for the agent —
 it's the thing that keeps catching me.
@@ -416,9 +408,9 @@ would ever read, and turning down a free offer because of it.
 
 **What I changed:** the list the agents see now uses the same words the fan gets.
 
-**What happened:** the first-time buyer's offer moved from 10% off to the free upgrade,
-and the day's cash spend went from $21 to $7. Four words in my own prompt had been
-costing the club money.
+**What happened:** the agents stopped turning upgrades down over a word no fan ever
+sees. They're still rarely the right answer — redirection 1 priced them and most carts
+can't afford one — but now they lose on cost rather than on my phrasing.
 
 **What I'd take from it:** the words in a prompt aren't labels on the system, they're
 part of it. Three decisions changed that day because of how I'd worded something. None

@@ -13,7 +13,7 @@ import type { CartFacts } from "./schema.ts";
  * same object and can't drift apart.
  */
 
-export const OFFER_KINDS = ["none", "reminder", "fee_waiver", "upgrade", "discount"] as const;
+export const OFFER_KINDS = ["none", "reminder", "upgrade", "discount"] as const;
 export type OfferKind = (typeof OFFER_KINDS)[number];
 
 const SECTION_LADDER = ["Upper Deck", "Lower Bowl", "Club"] as const;
@@ -50,20 +50,7 @@ export const SECTION_PRICE: Record<string, number> = {
   Club: 90,
 };
 
-/**
- * The booking fee added at checkout, as a share of face value.
- *
- * A flat "$6 a seat" sat here first, which was another number I'd made up.
- * Ticketing fees are normally a percentage — a fee that's 17% of an Upper Deck
- * seat and 7% of a Club seat isn't a fee, it's an accident. 12% is the middle
- * of the usual range and it scales with the ticket the way a real one does.
- *
- * Like the prices, this is a lookup in production: Envorso runs the checkout,
- * so the exact number is theirs. And whether waiving it costs the club or costs
- * Envorso depends on who books the fee — a question for whoever owns the P&L,
- * flagged here rather than assumed either way.
- */
-const SERVICE_FEE_RATE = 0.12;
+
 
 /**
  * A note on what an upgrade costs, and why there are no probabilities here.
@@ -175,23 +162,12 @@ export const CATALOG: CatalogEntry[] = [
     eligible: alwaysEligible,
   },
   {
-    id: "fee_waiver",
-    kind: "fee_waiver",
-    label: "Booking fee waived",
-    description:
-      "Drop the booking fee added at checkout. The smallest real offer there is — it reads as removing an annoyance rather than cutting the price of a ticket, so it doesn't reset what a fan thinks a seat costs. Note it isn't automatically the cheapest: on a large party the fee can come to more than a straight discount would.",
-    strength: 2,
-    cashCost: (c) => round2(c.cart_value_usd * SERVICE_FEE_RATE),
-    opportunityCost: () => 0,
-    eligible: alwaysEligible,
-  },
-  {
     id: "upgrade_one_tier",
     kind: "upgrade",
     label: "Free seat upgrade",
     description:
       "Move them up a section at the price they already had in the cart — the fan is told exactly which section, by name. Costs no cash, because it spends a seat that was likely going unsold, and it reads as being looked after rather than marked down. The right tool for winning back a fan who has drifted away.",
-    strength: 3,
+    strength: 2,
     cashCost: () => 0,
     opportunityCost: (c) => {
       const target = upgradeTarget(c.section);
@@ -213,7 +189,7 @@ export const CATALOG: CatalogEntry[] = [
     label: "10% off the cart",
     description:
       "Real money off. Only where there is genuine doubt the fan returns at all, and the cheaper tools above won't move them.",
-    strength: 4,
+    strength: 3,
     cashCost: (c) => round2(c.cart_value_usd * 0.1),
     opportunityCost: () => 0,
     eligible: alwaysEligible,
@@ -224,7 +200,7 @@ export const CATALOG: CatalogEntry[] = [
     label: "15% off the cart",
     description:
       "The deepest offer available. Reserved for a fan we have no evidence will ever come back on their own — a first-timer with no history, or someone long lapsed. Never for a regular buyer.",
-    strength: 5,
+    strength: 4,
     cashCost: (c) => round2(c.cart_value_usd * 0.15),
     opportunityCost: () => 0,
     eligible: alwaysEligible,
@@ -267,9 +243,6 @@ export function describeOffer(id: string, cart: CartFacts): string {
   }
   if (offer.id === "no_offer" || offer.id === "reminder_only") return offer.label;
   if (offer.kind === "discount") {
-    return `${offer.label} — saves $${offer.cashCost(cart).toFixed(2)}`;
-  }
-  if (offer.id === "fee_waiver") {
     return `${offer.label} — saves $${offer.cashCost(cart).toFixed(2)}`;
   }
   return offer.label;

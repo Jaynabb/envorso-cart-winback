@@ -111,15 +111,15 @@ export const ESCALATION_COST_USD = 15;
  * The strongest offer allowed, given how likely the fan was to return anyway.
  *
  * This is the spine of the whole system expressed as arithmetic. Strength comes
- * from the catalog: 0 nothing, 1 reminder, 2 fee waiver, 3 upgrade, 4-5 cash.
+ * from the catalog: 0 nothing, 1 reminder, 2 upgrade, 3-4 cash.
  * A fan who is probably coming back gets a reminder at most. Money is reserved
  * for the cases where we have no reason to believe they return without it.
  */
 export const MAX_STRENGTH_BY_RETURN_LIKELIHOOD: Record<FanRead["return_likelihood"], number> = {
   high: 1,
-  medium: 3,
-  low: 5,
-  unknown: 5,
+  medium: 2,
+  low: 4,
+  unknown: 4,
 };
 
 /**
