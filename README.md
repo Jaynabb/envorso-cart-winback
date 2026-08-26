@@ -40,6 +40,21 @@ justify the second.
 agent. Left the cart under two hours ago? Nothing, they might still be paying. Under 24
 hours? A free reminder, but no money.
 
+This is also where loyalty lives. Every 15 tickets earns a free seat upgrade, so paying
+for a cart that takes a fan past 15, 30 or 45 earns them one. `C-1004` has 40 tickets and
+6 seats waiting; `C-1001` has 14 and 2. Both cross.
+
+That matters because it's the only thing the club gives its best fans. They're the ones
+who correctly get no win-back offer — they were coming back anyway — which leaves them
+staring at nothing while a stranger gets 15% off. A milestone is owed rather than spent,
+so it doesn't pay for a sale we already had, and it turns the one message they do get
+from a nag into news:
+
+> **Your next seats earn you an upgrade.** These take you to 16 tickets with us. Every 15
+> earns a free seat upgrade — we'll move you to the Club for this one.
+
+It's a rule and not an agent, because an entitlement isn't a judgement call.
+
 **Agent 1 works out who the fan is.** Regular, first-timer, gone a year. And the
 question everything hangs on: would they have come back without us? **It never sees the
 cart value.** Money can't tell you whether someone returns.
@@ -80,15 +95,15 @@ produces an offer.
 
 ### Which carts get an offer
 
-Don't ask "how do we win this cart back?" The easiest carts to win back are the ones
-coming back anyway, and you can't tell from the result. Send a discount, they buy, it
-looks like it worked. You paid for a sale you already had.
+Don't ask "how do we win this cart back?" The easiest ones to win back were coming back
+anyway, and you can't tell from the result: send a discount, they buy, it looks like it
+worked, and you paid for a sale you already had.
 
-Ask instead: **would this fan have come back on their own?** The less likely that is,
-the more we're willing to give. Not the size of the cart. Not how loyal they are.
+Ask instead: **would this fan have come back on their own?** The less likely that is, the
+more we're willing to give. Not the size of the cart, not how loyal they are.
 
-How recently they left decides what we can *spend*, not whether we talk to them. Under
-two hours, nothing. Two to 24 hours, a free reminder. After that, real offers.
+How recently they left caps what we can *spend*, not whether we talk to them. Under two
+hours, nothing. Two to 24 hours, a free reminder. After that, real offers.
 
 | cart | | what happens |
 |---|---|---|
@@ -98,45 +113,46 @@ two hours, nothing. Two to 24 hours, a free reminder. After that, real offers.
 | `C-1005` | one ticket 300 days ago, cold 4 days | **10% off, $7** |
 | `C-1003` | no email opt-in | **blocked** |
 
-`C-1004` is the trap. Biggest number on the page. He's also a fan with forty tickets who
-bought nine days ago and walked away an hour ago — the most likely person here to finish
-on his own. Discounting him buys a sale the club already had, and teaches its most
-reliable buyer that walking away gets rewarded.
+`C-1004` is the trap. Biggest number on the page, and the likeliest person on it to
+finish by himself — forty tickets, bought nine days ago, walked away an hour ago.
+Discounting him buys a sale the club already had, and teaches its best buyer that walking
+away gets rewarded.
+
+Leaving your best fans alone is right and looks awful — nothing for the man with forty
+tickets, 15% off for a stranger. So **every 15 tickets earns a free seat upgrade**. It's
+owed rather than spent, so it never competes with the win-back logic. Both held fans
+cross one on the cart they abandoned.
 
 ### What we offer, and what it costs
 
-Six options, fixed: nothing, a reminder, waive the booking fee, a free seat upgrade,
-10% off, 15% off. The agent picks one by name and can't make one up.
+Six fixed options: nothing, a reminder, waive the booking fee, a free seat upgrade, 10%
+off, 15% off. The agent picks one by name; it can't invent one.
 
-The booking fee is what checkout adds on top of the ticket price, 12% here. Waiving it
-feels smaller than a discount — but on a $140 cart it costs **$16.80**, while 10% off
-costs **$14**. Smaller doesn't mean cheaper.
+Pick the smallest thing that could work; if two would, the cheaper one. Those differ:
+waiving the booking fee — the 12% checkout adds on top — feels smaller than a discount,
+but on a $140 cart it costs **$16.80** against **$14** for 10% off.
 
-Pick the smallest thing that could work. If two would work, the cheaper one.
+Price everything honestly. **A free upgrade isn't free** — moving a fan from a $35 seat
+to a $53 one loses the club the $18 gap on a seat someone else would have bought:
 
-Then price everything honestly, which changed the answers. **A free upgrade isn't free.**
-Move a fan from a $35 seat to a $53 one and the club gives up the $18 difference on a
-seat someone else would have bought:
-
-| for a $70 cart | costs the club | club keeps |
+| for a $70 cart | costs | club keeps |
 |---|---|---|
 | free upgrade | **$36** | $34 |
 | 10% off | **$7** | $63 |
 
-Upgrading gives away half the cart to save the cart. Nothing may cost more than a fifth
-of the cart it's rescuing.
+Half the cart, to save the cart. Nothing may cost more than a fifth of what it saves.
 
 ### What I didn't build
 
 **No sending.** The agent proposes, the marketer copies ready-made email and SMS text.
-There's no CRM, and building a sender would be the least useful thing in the sprint.
+There's no CRM, and a sender would be the least useful thing in the sprint.
 
-**No spend budget.** Every offer is approved one at a time with its price on the card, so
-nobody can overspend by accident. A cap would guard something the approval step already
-prevents. First thing to add the day this sends without a person in front of it.
+**No spend budget.** Every offer is approved one at a time with its price showing, so
+nobody overspends by accident. First thing to add the day this sends without a person
+watching.
 
-**Nothing personalised past the segment**, no multi-team version, no self-serve rule
-editing. One club, one marketer, one screen.
+**Nothing personalised past the segment**, no multi-team version, no self-serve rules.
+One club, one marketer, one screen.
 
 ---
 
@@ -297,10 +313,13 @@ the blank now says something. A hold on one of the club's core fans carries a no
 is who they are, leaving them alone is correct, and if you want to do something for them
 it shouldn't be money.
 
-**What I didn't build:** loyal fans need looking after in a currency that isn't
-discounts — recognition, first access, better seats when there's room. That's a loyalty
-programme, not a cart tool. The system doesn't pretend to solve it. It puts it in front
-of the person who can.
+**What came out of it:** the fix isn't to shrink the offer to the stranger, it's to pay
+the loyal fan in a currency that isn't discounts. So every 15 tickets now earns a free
+seat upgrade. Both held fans cross one on the cart they abandoned — 45 for `C-1004`, 15
+for `C-1001` — and it's owed regardless, so it never competes with the win-back logic.
+
+A full loyalty programme is still out of scope for a cart tool. One rule that costs
+nothing extra is not.
 
 ### 3 · Four words that cut the day's spend by two thirds
 
