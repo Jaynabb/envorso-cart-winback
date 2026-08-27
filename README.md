@@ -42,21 +42,21 @@ both who the fan is and what they deserve.
 
 *What the agents are allowed to choose from:*
 
-3. **Coming back on their own?** Only the free options go on the agent's menu. A discount
-   can't win back someone who was already going to buy — they buy either way, and the
-   club just gets less for it.
-4. **And silence isn't one of those options.** If we can reach them and the cart is
-   genuinely abandoned, they hear something. A reminder is free, so staying quiet saves
-   nothing.
-5. **Not coming back on their own?** Only the options that cost money. A reminder won't
-   move someone who has been gone 300 days.
-6. **Which discount is set by history, not by the agent.** Never bought before: 15%.
-   Bought before and stopped: 10%.
-7. **Nothing above them, nothing to upgrade to.** A fan already in the Club can't be
-   moved up.
+3. **Coming back on their own? They get a reminder, and that's the only thing on the
+   list.** A discount can't win back someone who was already going to buy — they buy
+   either way, and the club just gets less for it.
+4. **They always get that reminder.** Sending nothing isn't on the list either. A
+   reminder costs the club nothing, so staying quiet saves nothing.
+5. **Not coming back on their own? The reminder comes off the list.** Being reminded
+   isn't what's missing for someone who's been gone 300 days. They get 10% off, 15% off,
+   or a seat upgrade.
+6. **Between the two discounts, purchase history decides — not the agent.** Never bought
+   before: 15%. Bought before and stopped: 10%.
+7. **A seat upgrade is only on the list if there's a section above them.** `C-1004` is
+   already in the Club, so there's nowhere to move him.
 
-Plus one thing the club gives back rather than spends: crossing 15, 30 or 45 tickets
-earns a voucher, two seats, one step up, on a later order.
+There's also a voucher, which isn't a win-back offer at all: crossing 15, 30 or 45
+tickets earns two seats one section up, on a later order.
 
 The agents decide who the fan is, whether an offer is warranted at all, and which of the
 options in front of them to use. A person approves every one before it goes anywhere.
@@ -75,8 +75,9 @@ regardless. **The club just sold the same tickets for less money.**
 So this asks a different question. **Would this fan have come back on their own?** The
 less likely, the more we give. Not the size of the cart. Not how loyal they are.
 
-It decides whether the offer may cost anything, not whether we talk to them at all. A
-reminder is free, so "don't spend money on this fan" never becomes "ignore them".
+It decides which list the agent picks from: a reminder on its own, or the three that cost
+the club money. It doesn't decide whether we contact them at all — a reminder is free, so
+"don't spend money on this fan" never becomes "ignore them".
 
 | cart | | what happens |
 |---|---|---|
@@ -172,8 +173,8 @@ Then six checks that need no answers written in advance, so they work on any day
 - the fan opted in to email
 - nothing goes out under two hours
 - the offer is real and available for that cart
-- nothing that costs money goes to a fan we read as coming back anyway
-- nobody gets a bare reminder when a reminder won't move them
+- a fan read as coming back on their own gets a reminder and nothing else
+- a fan read as gone never gets just a reminder
 - the price the agent claimed matches the price we work out ourselves
 
 Sixty test carts pass all six. **This is the part that would run every morning.**
@@ -183,11 +184,11 @@ Sixty test carts pass all six. **This is the part that would run every morning.*
 Both only prove the system does what I told it to. Neither says whether what I told it
 was right. Two things would, and both need this to be sending for real.
 
-**A control group.** Say we send a fan 10% off and they buy. Did the offer work? There's
-no way to tell — plenty of them were going to buy anyway, and we just paid for it. So
-hold back a tenth of the fans who qualified, send them nothing, and compare the two
-groups. The difference is what the offers actually rescued. Without that, every campaign
-looks like it works, including a bad one.
+**A control group.** Say we send a fan 10% off and they buy. Did the 10% do it? There's
+no way to tell — plenty of them were going to buy anyway, and we handed them $14 for
+nothing. So hold back a tenth of the fans who qualified, send them nothing, and compare
+the two groups. The difference is what the discounts actually rescued. Without that,
+every campaign looks like it works, including a bad one.
 
 **The marketer's edits.** Every card has Approve, Edit and Reject on it. When a marketer
 edits an offer before sending, they're telling us the agent got it wrong — and by picking
@@ -201,7 +202,7 @@ the tool for free, with nobody doing extra work. If lapsed fans keep getting bum
 |---|---|---|
 | Rules | none | consent and arithmetic don't need a model |
 | Agents 1 and 2 | Haiku 4.5 | sorting into categories is what a small fast model is for |
-| Agent 3 | Haiku, Sonnet when the offer costs money | pay more only where money leaves |
+| Agent 3 | Haiku, Sonnet for discounts and upgrades | pay more only where money leaves |
 
 Measured, not estimated:
 
@@ -215,6 +216,7 @@ Measured, not estimated:
 **The agents reason correctly from bad input.** Every step is sound and the answer looks
 fine, because the mistake is in something nobody checked. That's the whole failure mode,
 and it doesn't look like a failure.
+
 
 Two from this build. The offer list priced a seat upgrade at `$0`, so the agents gave
 them away. And the list of alternatives shown to Agent 3 left out the offer it was

@@ -30,7 +30,7 @@ Every price below is money the club does not get, and they are directly comparab
 
 ## The one rule
 
-**How strong an offer can be is set by how unlikely the fan was to come back on their own. Nothing else.**
+**Whether a fan gets a discount or an upgrade at all — rather than just a reminder — is set by how unlikely they were to come back on their own. Nothing else.**
 
 Not the size of the cart. Not how loyal they are. A cart that would have been finished anyway is a sale the club already had — paying for it is money burned, and doing it repeatedly teaches reliable fans that walking away gets rewarded. A large cart from a regular buyer is the *least* deserving of a discount in this whole system, not the most.
 
@@ -98,10 +98,10 @@ export function buildStrategistUserPrompt(cart: CartFacts, read: FanRead): strin
 
   const tierNote =
     tier === "free"
-      ? "\nThis fan was read as likely to finish without us, so nothing that costs money is on the menu. That isn't a budget — it's the one rule. Anything with a price on it would be buying a sale the club already had.\n"
+      ? "\nThis fan was read as likely to finish the cart on their own, so the reminder is the only thing on the menu. Discounts and upgrades are not options here. They were going to buy either way — a discount would sell them the same tickets for less money.\n"
       : tier === "paid"
-        ? "\nThis fan was read as unlikely to come back on their own, so a bare reminder isn't on the menu — they have already shown you that being reminded isn't what's missing. Give them a reason, or say so and the marketer holds.\n"
-        : "\nThis read is genuinely uncertain, so both kinds are on the menu. The call is yours to make and to justify.\n";
+        ? "\nThis fan was read as unlikely to come back on their own, so the reminder is off the menu. They have already shown you that being reminded isn't what's missing. Pick a discount or the upgrade, or say nothing here would work and the marketer holds the cart.\n"
+        : "\nThis read is genuinely uncertain, so the reminder AND the discounts are on the menu. The call is yours to make and to justify.\n";
 
   return `The analyst's read of this fan:
 

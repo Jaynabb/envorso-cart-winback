@@ -36,7 +36,7 @@ Every figure you are shown is money the club does not get, and they compare dire
 
 ## The rule you are enforcing
 
-How strong an offer can be tracks one thing: how unlikely the fan was to come back on their own. Not the size of the cart, not how loyal they are.
+Whether this fan gets a discount or an upgrade at all — rather than just a reminder — tracks one thing: how unlikely they were to come back on their own. Not the size of the cart, not how loyal they are.
 
 So the questions are:
 - If we sent this fan nothing at all, would they have finished the cart anyway? If probably yes, then anything with a COST attached is money burned, and the verdict is veto. But read that carefully: it applies to offers that cost something. A plain reminder costs nothing, so "they were coming back anyway" is not a reason to veto one — a fan who got interrupted three hours ago is helped by a nudge, and the club pays nothing for it.
@@ -99,7 +99,7 @@ export function buildReviewerUserPrompt(
             ? `costs $${delta.toFixed(2)} MORE`
             : `costs $${Math.abs(delta).toFixed(2)} less`;
       const marks = [
-        cheapest && o.id === cheapest.id ? "cheapest that costs money" : "",
+        cheapest && o.id === cheapest.id ? "the cheapest discount or upgrade available here" : "",
         o.id === offerId ? "THIS IS THE PROPOSAL" : "",
       ].filter(Boolean);
       const mark = marks.length ? ` — ${marks.join("; ")}` : "";
