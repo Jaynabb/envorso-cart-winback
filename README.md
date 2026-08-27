@@ -131,23 +131,22 @@ knows nothing about.
 
 ### Loyalty
 
-A loyal fan correctly gets no offer, because they were coming back anyway — which leaves
-them with nothing while a stranger gets 15% off. A club this size has a few thousand
-supporters and they know each other.
+Nothing in the win-back rules rewards a fan for being a regular, so someone with 40
+tickets can get a reminder while a stranger gets 15% off. A club this size has a few
+thousand supporters and they know each other.
 
-So crossing 15, 30 or 45 tickets earns a voucher: two seats, one step up, on a later
-order. From the Lower Bowl, one step up is the Club:
+The voucher is the answer, earned by buying 15 tickets rather than by abandoning a cart.
+Crossing 15, 30 or 45 earns two seats one step better, on a later order:
 
 ```
-Club seat            $90
-Lower Bowl seat      $53
-                     ────
-one step             $37   x 2 seats  =  $74
+from the Lower Bowl    two seats move up to the Club       $90 - $53  =  $37 a seat
+already in the Club    two Club seats at Lower Bowl price  $90 - $53  =  $37 a seat
+                                                             x 2 seats  =  $74
 ```
 
-They earned it by buying 15 tickets, not by abandoning a cart, so it never interferes
-with the win-back decision. Nothing comes off the cart they're holding, and the rule
-isn't published.
+**A fan already buying Club seats is in the best seats in the ground**, so there's
+nowhere to move them. Their step is the price instead — same one-tier gap, same $74.
+Nothing comes off the cart they're holding, and the rule isn't published.
 
 ### What I didn't build
 
