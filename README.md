@@ -30,30 +30,38 @@ Agent 1 works out who the fan is. Agent 2 picks the offer. Agent 3 argues agains
 Each one only sees what the step before it produced, which stops a single model deciding
 both who the fan is and what they deserve.
 
-**The rules.** Seven, all fixed in code. An agent can't overrule any of them.
+**The rules.** All fixed in code. An agent can't overrule any of them.
 
-*Before any agent runs — can we contact this person at all?*
+*First, can we contact this person at all?*
 
 1. **No email opt-in, no contact.** `C-1003` stops here and never reaches an agent. You
    shouldn't need a language model to notice you don't have permission to email someone.
-2. **Nothing under two hours old.** They may still be at the checkout, and "you left
-   something behind" is the worst message to send someone typing in their card number.
-   `C-1004` left an hour ago, so he waits.
 
-*What the agents are allowed to choose from:*
+*Then the clock. How long the cart has been sitting decides what they can get:*
 
-3. **Coming back on their own? They get a reminder, and that's the only thing on the
-   list.** A discount can't win back someone who was already going to buy — they buy
-   either way, and the club just gets less for it.
-4. **They always get that reminder.** Sending nothing isn't on the list either. A
-   reminder costs the club nothing, so staying quiet saves nothing.
-5. **Not coming back on their own? The reminder comes off the list.** Being reminded
-   isn't what's missing for someone who's been gone 300 days. They get 10% off, 15% off,
-   or a seat upgrade.
-6. **Between the two discounts, purchase history decides — not the agent.** Never bought
+```
+under 2 hours     nothing yet. They may still be at the checkout, and "you left
+                  something behind" is the worst message to send someone typing
+                  in their card number.        C-1004 left an hour ago.
+
+2 to 24 hours     a reminder, and nothing that costs money. Most carts this new
+                  get finished anyway, so a discount this soon just sells the
+                  same tickets for less.       C-1001 left 3 hours ago.
+
+after 24 hours    a discount. 15% off if they have never bought a ticket,
+                  10% off if they have.        C-1002 at 26h, C-1005 at 96h.
+```
+
+2. **They always get the reminder in that middle window.** Sending nothing isn't an
+   option. It costs the club nothing, so staying quiet saves nothing.
+3. **Between the two discounts, purchase history decides — not the agent.** Never bought
    before: 15%. Bought before and stopped: 10%.
-7. **A seat upgrade is only on the list if there's a section above them.** `C-1004` is
-   already in the Club, so there's nowhere to move him.
+4. **One thing overrides the clock.** If Agent 1 reads the fan as coming back on their
+   own regardless — a regular who buys every month — they drop back to a reminder however
+   long it's been. The clock says how soon money is allowed. The read says whether it's
+   warranted at all. A cart has to clear both.
+5. **A seat upgrade is only on the list if there's a section above them**, and it costs
+   more than the discount every time, so an agent picking one has to say why on the card.
 
 There's also a voucher, which isn't a win-back offer at all: crossing 15, 30 or 45
 tickets earns two seats one section up, on a later order.
@@ -104,10 +112,10 @@ Lower Bowl   C-1001     $96 / 2 seats  =  $48   midpoint
 Five options: nothing, a reminder, a free seat upgrade, 10% off, 15% off. The agent picks
 one by name and can't invent others.
 
-The rule is take the cheapest that would work — which needs every option to have a real
-price, and one of them hides its own. A free seat upgrade takes no cash at the till, so
-it looks like it costs nothing. It doesn't. The club hands over a better seat and gets
-back a cheaper one, and the gap is money it won't collect:
+After 24 hours the offer is a discount, and which one is set by purchase history. The
+seat upgrade is on the list as well, and it's the one that needs watching: it takes no
+cash at the till, so it looks like it costs nothing. It doesn't. The club hands over a
+better seat and gets back a cheaper one, and the gap is money it won't collect:
 
 ```
 C-1005 — 2 Upper Deck seats, $70 cart
@@ -119,7 +127,8 @@ C-1005 — 2 Upper Deck seats, $70 cart
 ```
 
 $36 to rescue a $70 cart, against $7 for the discount. The gentler-sounding offer costs
-five times as much, so it almost never wins.
+five times as much, which is why the discount is the default and an upgrade has to be
+argued for.
 
 Which discount depends on whether they've bought before. Someone who bought and stopped
 already knows what a ticket costs and chose not to buy this time, so 10% is the smallest
@@ -171,7 +180,7 @@ and thought about five carts, so it can't grow past them.
 Then six checks that need no answers written in advance, so they work on any day's carts:
 
 - the fan opted in to email
-- nothing goes out under two hours
+- nothing goes out under two hours, and nothing costing money under 24
 - the offer is real and available for that cart
 - a fan read as coming back on their own gets a reminder and nothing else
 - a fan read as gone never gets just a reminder
@@ -302,8 +311,9 @@ The cap changed nothing. The loyalty rule never fired at all, because Agent 1 ha
 read those fans off their real purchase history. Deleting all eleven changed one decision
 out of five, and made that one cheaper.
 
-Three chosen numbers are left: two hours, 15 tickets, two seats. Everything else is a
-seat price read off the carts.
+Four chosen numbers are left, and they're all schedule or policy rather than claims about
+the data: two hours, 24 hours, 15 tickets, two seats. Everything else is a seat price
+read off the carts.
 
 ### 3. What decides whether a fan gets 10% or 15%?
 

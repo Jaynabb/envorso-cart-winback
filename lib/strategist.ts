@@ -5,7 +5,7 @@ import {
   type OfferProposal,
 } from "./schema.ts";
 import { describeOffer, menuFor, totalCost } from "./catalog.ts";
-import { allowedTier } from "./policy.ts";
+import { allowedTier, COOLING_OFF_HOURS } from "./policy.ts";
 import { runAgent, type AgentResult } from "./agent.ts";
 
 /**
@@ -68,7 +68,7 @@ Call the propose_offer tool exactly once.`;
 }
 
 export function buildStrategistUserPrompt(cart: CartFacts, read: FanRead): string {
-  const tier = allowedTier(read.return_likelihood);
+  const tier = allowedTier(read.return_likelihood, cart.abandoned_hours_ago);
   // A "medium" read is genuine uncertainty, so the agent is shown both tiers
   // and has to make the call in the open rather than have a threshold make it
   // silently. Everything else is decided by the read.
@@ -98,7 +98,9 @@ export function buildStrategistUserPrompt(cart: CartFacts, read: FanRead): strin
 
   const tierNote =
     tier === "free"
-      ? "\nThis fan was read as likely to finish the cart on their own, so the reminder is the only thing on the menu. Discounts and upgrades are not options here. They were going to buy either way — a discount would sell them the same tickets for less money.\n"
+      ? cart.abandoned_hours_ago < COOLING_OFF_HOURS
+        ? `\nThis cart was left ${cart.abandoned_hours_ago} hours ago, inside the club's first ${COOLING_OFF_HOURS} hours. No money goes out that soon — most carts this new finish themselves, so a discount would sell the same tickets for less. The reminder is the only thing on the menu.\n`
+        : "\nThis fan was read as likely to finish the cart on their own, so the reminder is the only thing on the menu. Discounts and upgrades are not options here. They were going to buy either way — a discount would sell them the same tickets for less money.\n"
       : tier === "paid"
         ? "\nThis fan was read as unlikely to come back on their own, so the reminder is off the menu. They have already shown you that being reminded isn't what's missing. Pick a discount or the upgrade, or say nothing here would work and the marketer holds the cart.\n"
         : "\nThis read is genuinely uncertain, so the reminder AND the discounts are on the menu. The call is yours to make and to justify.\n";

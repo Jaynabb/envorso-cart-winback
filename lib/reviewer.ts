@@ -72,7 +72,7 @@ export function buildReviewerUserPrompt(
   offerId: string,
 ): string {
   const offer = getOffer(offerId);
-  const tier = allowedTier(read.return_likelihood);
+  const tier = allowedTier(read.return_likelihood, cart.abandoned_hours_ago);
   const tiers: ("free" | "paid")[] = tier === null ? ["free", "paid"] : [tier];
   const cheapest = cheapestPaid(cart);
 

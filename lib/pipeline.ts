@@ -127,7 +127,7 @@ async function decideOne(
     };
   }
   let proposal = proposalResult.value;
-  const tier = allowedTier(read.return_likelihood);
+  const tier = allowedTier(read.return_likelihood, cart.abandoned_hours_ago);
 
   // The club's rule, and the one place a model's choice gets overruled.
   //

@@ -54,6 +54,21 @@ import {
 export const TOO_FRESH_HOURS = 2;
 
 /**
+ * The club doesn't spend money on a cart younger than a day.
+ *
+ * A schedule, not a guess about any individual fan: nothing for two hours,
+ * a reminder for the rest of the first day, and money only after that. Most
+ * carts that are a few hours old finish themselves, so a discount inside that
+ * window sells the same tickets for less. After a day, that stops being true.
+ *
+ * This is a club decision and it's the club's to change. What it is NOT is a
+ * claim about the data, which is why it can sit next to the analyst's read
+ * rather than argue with it: the clock says how soon money is allowed, the
+ * read says whether money is warranted at all. A cart has to clear both.
+ */
+export const COOLING_OFF_HOURS = 24;
+
+/**
  * The other one, and it isn't a guard rail — it's what the club gives back.
  *
  * Every 15 tickets earns a free seat upgrade. See milestone() below for why a
@@ -96,7 +111,11 @@ export const MILESTONE_SEATS = 2;
  */
 export function allowedTier(
   likelihood: FanRead["return_likelihood"],
+  abandonedHoursAgo: number,
 ): "free" | "paid" | null {
+  // The clock first. Inside the first day the answer is a reminder whatever
+  // the analyst thought, because the club has decided not to spend that soon.
+  if (abandonedHoursAgo < COOLING_OFF_HOURS) return "free";
   if (likelihood === "high") return "free";
   if (likelihood === "medium") return null;
   return "paid";
@@ -358,12 +377,18 @@ export function checkInvariants(cart: CartFacts, decision: Decision): string[] {
   // did we spend money on someone who was coming back without us?
   if (decision.read) {
     const likelihood = decision.read.return_likelihood;
-    const tier = allowedTier(likelihood);
+    const tier = allowedTier(likelihood, cart.abandoned_hours_ago);
     const cost = totalCost(offer, cart);
 
     if (tier === "free" && offer.tier === "paid") {
+      // Say WHICH rule stopped it. Both send the same offer back, and they are
+      // not the same problem: one is the club's schedule, the other is the
+      // analyst's read of this particular fan. An alarm that names the wrong
+      // cause is barely better than no alarm.
       problems.push(
-        `INCREMENTALITY: ${offer.label} costs $${cost.toFixed(2)} and went to a fan read as likely to return without us. That is money spent on a sale we already had.`,
+        cart.abandoned_hours_ago < COOLING_OFF_HOURS
+          ? `TOO SOON: ${offer.label} costs $${cost.toFixed(2)} and the cart is only ${cart.abandoned_hours_ago} hours old. Nothing costing money goes out inside ${COOLING_OFF_HOURS} hours — a cart this new usually gets finished anyway.`
+          : `INCREMENTALITY: ${offer.label} costs $${cost.toFixed(2)} and went to a fan read as likely to return without us. That is money spent on a sale we already had.`,
       );
     }
 
