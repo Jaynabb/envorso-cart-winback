@@ -26,8 +26,19 @@ cart ─▶ RULES ─▶ AGENT 1 ─▶ AGENT 2 ─▶ AGENT 3 ─▶ marketer
         them?     fan?      them?                  rejects
 ```
 
-Each step only sees what the step before it produced. That stops one model deciding both
-who the fan is and what they deserve.
+Agent 1 works out who the fan is. Agent 2 picks the offer. Agent 3 argues against it.
+Each one only sees what the step before it produced, which stops a single model deciding
+both who the fan is and what they deserve.
+
+**There are two rules, and that's all of them.**
+
+1. **No email opt-in, no contact.** `C-1003` stops here and never reaches an agent. You
+   shouldn't need a language model to notice you don't have permission to email someone.
+2. **Nothing under two hours old.** They may still be at the checkout, and "you left
+   something behind" is the worst message to send someone typing in their card number.
+   `C-1004` left an hour ago, so he waits.
+
+Everything after that is the agents, and a person approves whatever they come up with.
 
 ---
 
@@ -41,6 +52,11 @@ worked, and you paid for a sale you already had.
 
 So this asks a different question. **Would this fan have come back on their own?** The
 less likely that is, the more we give. Not the size of the cart. Not how loyal they are.
+
+That answer decides one thing: whether the offer is allowed to cost anything. A fan who
+was coming back anyway gets something free — a reminder costs the club nothing, so
+staying quiet saves nothing either. A fan who wasn't gets something that costs money,
+because a reminder won't move someone who has been gone 300 days.
 
 | cart | | what happens |
 |---|---|---|
@@ -182,7 +198,7 @@ Five things stop a bad offer reaching a fan:
 2. Agent 3 never sees why the offer was chosen, so a good-sounding reason can't talk it
    round.
 3. Every check has something enforcing it. An old price cap was reported for three runs
-   while the offers went out anyway, because nothing removed them from the menu.
+   while the offers went out anyway, because nothing removed them from the offer list.
 4. Numbers get tested rather than defended. Sweeping one across its range shows whether
    it changes any answer at all.
 5. It fails closed. Anything breaks, the cart holds and sends nothing.
@@ -224,10 +240,10 @@ $36 to rescue a $70 cart, against $7 for a discount — five times the price. Th
 option was the most expensive thing on the list. It was being recommended because nothing
 had priced it.
 
-The reviewer agent had been arguing against upgrades for hours and losing, because the
-menu said $0. Once the prices were real it agreed with my answers every time.
+Agent 3 had been arguing against upgrades for hours and losing, because the offer list
+said $0. Once the prices were real it agreed with my answers every time.
 
-I caught the same thing again later. The catalog was still telling the agents the seat
+I caught the same thing again later. The offer list was still telling the agents the seat
 was *"likely going unsold"*, while the price underneath assumed it sold. Fixing a number
 doesn't fix the sentence next to it.
 
@@ -262,7 +278,7 @@ seat price read off the carts.
 
 Nothing did.
 
-The catalog said 15% was for a fan with no history. The selection rule says take the
+The offer list said 15% was for a fan with no history. The selection rule says take the
 cheapest that works. Every fan who fit the first also qualified for the cheaper one, so
 10% won every time. **Across sixty carts, 15% was never chosen once.** I'd have shown it
 as a live option.
