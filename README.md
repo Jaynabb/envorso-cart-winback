@@ -73,12 +73,10 @@ You send 10% off, the fan buys, and it looks like it worked. But they were going
 regardless. **The club just sold the same tickets for less money.**
 
 So this asks a different question. **Would this fan have come back on their own?** The
-less likely that is, the more we give. Not the size of the cart. Not how loyal they are.
+less likely, the more we give. Not the size of the cart. Not how loyal they are.
 
-That answer decides one thing: whether the offer is allowed to cost anything. It does
-not decide whether we talk to them at all. Those are two different decisions, and keeping
-them apart is why "don't spend money on this fan" doesn't turn into "ignore this fan" —
-a reminder is free, and it's roughly four in every ten things this system sends.
+It decides whether the offer may cost anything, not whether we talk to them at all. A
+reminder is free, so "don't spend money on this fan" never becomes "ignore them".
 
 | cart | | what happens |
 |---|---|---|
@@ -88,7 +86,7 @@ a reminder is free, and it's roughly four in every ten things this system sends.
 | `C-1005` | one ticket 300 days ago, $70, cold 4 days | 10% off · 70 × 0.10 = **$7** |
 | `C-1003` | no email opt-in | blocked |
 
-`C-1004` is the trap. Biggest cart on the page, and the most likely person on it to
+`C-1004` is the trap: the biggest cart on the page, and the most likely person on it to
 finish by himself.
 
 ### What the offers cost
@@ -102,15 +100,13 @@ Lower Bowl   C-1001     $96 / 2 seats  =  $48   midpoint
              C-1003     $58 / 1 seat   =  $58     $53
 ```
 
-There are five options: nothing, a reminder, a free seat upgrade, 10% off, 15% off. The
-agent picks one by name and can't invent others.
+Five options: nothing, a reminder, a free seat upgrade, 10% off, 15% off. The agent picks
+one by name and can't invent others.
 
-The rule is take the cheapest one that would work.
-
-That only works if every option has a real price on it, and one of them hides its price.
-A free seat upgrade takes no cash at the till, so it looks like it costs nothing. It
-doesn't. The club hands over a better seat and gets back a cheaper one, and the gap
-between them is real money it won't collect:
+The rule is take the cheapest that would work — which needs every option to have a real
+price, and one of them hides its own. A free seat upgrade takes no cash at the till, so
+it looks like it costs nothing. It doesn't. The club hands over a better seat and gets
+back a cheaper one, and the gap is money it won't collect:
 
 ```
 C-1005 — 2 Upper Deck seats, $70 cart
@@ -122,23 +118,22 @@ C-1005 — 2 Upper Deck seats, $70 cart
 ```
 
 $36 to rescue a $70 cart, against $7 for the discount. The gentler-sounding offer costs
-five times as much, which is why the upgrade almost never wins.
+five times as much, so it almost never wins.
 
-Which of the two discounts a fan gets depends on whether they've bought before. Someone
-who bought and stopped already knows what a ticket costs and chose not to buy this time,
-so 10% is the smallest sensible test of whether price is what's stopping them. Someone
-who has never bought gets 15%, because that money isn't buying a $140 cart — it's buying
-a first-time supporter the club knows nothing about, and there's no cheaper way to find
-out whether they'll come.
+Which discount depends on whether they've bought before. Someone who bought and stopped
+already knows what a ticket costs and chose not to buy this time, so 10% is the smallest
+sensible test of whether price is the problem. Someone who has never bought gets 15%,
+because that money isn't buying a $140 cart — it's buying a first-time supporter the club
+knows nothing about.
 
 ### Loyalty
 
-A loyal fan correctly gets no offer, because they were coming back anyway. That leaves
-them with nothing while a stranger gets 15% off. This club has a few thousand supporters
-and they know each other.
+A loyal fan correctly gets no offer, because they were coming back anyway — which leaves
+them with nothing while a stranger gets 15% off. A club this size has a few thousand
+supporters and they know each other.
 
 So crossing 15, 30 or 45 tickets earns a voucher: two seats, one step up, on a later
-order. One step up from the Lower Bowl is the Club:
+order. From the Lower Bowl, one step up is the Club:
 
 ```
 Club seat            $90
@@ -147,15 +142,15 @@ Lower Bowl seat      $53
 one step             $37   x 2 seats  =  $74
 ```
 
-They've earned it by buying 15 tickets, not by abandoning a cart, so it has nothing to do
-with the win-back decision and doesn't interfere with it. Nothing comes off the cart
-they're currently holding, and the club doesn't publish the rule.
+They earned it by buying 15 tickets, not by abandoning a cart, so it never interferes
+with the win-back decision. Nothing comes off the cart they're holding, and the rule
+isn't published.
 
 ### What I didn't build
 
-No sending. There's no CRM, so approving hands the marketer email and SMS text to paste.
-No spend cap, because a person approves every offer with the price showing. Nothing
-personalised past the segment, no multi-team version, no self-serve rules.
+No sending — there's no CRM, so approving hands the marketer email and SMS text to
+paste. No spend cap, because a person approves every offer with the price showing.
+Nothing personalised past the segment, no multi-team version, no self-serve rules.
 
 ---
 
