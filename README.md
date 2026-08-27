@@ -352,25 +352,6 @@ down the same way: it was being priced off what he'd paid per seat, 96 ÷ 2 = $4
 ($90 − $48) × 2 = $84. Priced off the section instead, it's $74 as well. One step is one
 step, whoever is buying.
 
-### 5. Why are we sending nothing to a fan who just got interrupted?
-
-Asked what to do with `C-1001` — 14 tickets, walked away from a half-finished cart three
-hours ago — it argued for silence. He's coming back on his own, so contacting him is
-unnecessary.
-
-That's a fair argument and it's not the call I'd make. He didn't change his mind three
-hours ago, he got interrupted. Staying quiet doesn't save the club anything. It just
-loses a sale we could have had.
-
-What I changed wasn't the prompt. Arguing a model into agreeing with you isn't a policy,
-it's a coincidence you have to rediscover every time the wording changes. It's a rule in
-the code now: if we can reach them and the cart is genuinely abandoned, they hear
-something. Whether that something costs the club anything is a separate question, and
-that's the one the agent answers.
-
-On the last sixty-cart run that's 18 reminders out of 44 offers — more than either
-discount, and none of it costing a penny.
-
 ### What these have in common
 
 None of them showed up in the output. The reasoning was sound every time. They were
