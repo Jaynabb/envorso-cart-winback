@@ -52,22 +52,17 @@ after 24 hours    a discount. 15% off if they have never bought a ticket,
                   10% off if they have.        C-1002 at 26h, C-1005 at 96h.
 ```
 
-2. **They always get the reminder in that middle window.** Sending nothing isn't an
-   option. It costs the club nothing, so staying quiet saves nothing.
-3. **Between the two discounts, purchase history decides — not the agent.** Never bought
+2. **Between the two discounts, purchase history decides — not the agent.** Never bought
    before: 15%. Bought before and stopped: 10%.
-4. **One thing overrides the clock.** If Agent 1 reads the fan as coming back on their
-   own regardless — a regular who buys every month — they drop back to a reminder however
-   long it's been. The clock says how soon money is allowed. The read says whether it's
-   warranted at all. A cart has to clear both.
-5. **A seat upgrade is only on the list if there's a section above them**, and it costs
+3. **A seat upgrade is only on the list if there's a section above them**, and it costs
    more than the discount every time, so an agent picking one has to say why on the card.
 
 There's also a voucher, which isn't a win-back offer at all: crossing 15, 30 or 45
 tickets earns two seats one section up, on a later order.
 
-The agents decide who the fan is, whether an offer is warranted at all, and which of the
-options in front of them to use. A person approves every one before it goes anywhere.
+The rules decide what's on the list. The agents work out who the fan is, choose from
+what's left, argue against each other, and write the reasoning a marketer reads. A person
+approves every one before it goes anywhere.
 
 ---
 
@@ -83,8 +78,8 @@ regardless. **The club just sold the same tickets for less money.**
 So this asks a different question. **Would this fan have come back on their own?** The
 less likely, the more we give. Not the size of the cart. Not how loyal they are.
 
-It decides whether they get a reminder or a discount — not whether we contact them at
-all. The reminder is free, so "don't spend on this fan" never becomes "ignore them".
+It's why the schedule sends a reminder before it sends money, and why "don't spend on
+this fan" never becomes "ignore this fan".
 
 | cart | | what happens |
 |---|---|---|
@@ -180,8 +175,8 @@ Then six checks that need no answers written in advance, so they work on any day
 - the fan opted in to email
 - nothing goes out under two hours, and nothing costing money under 24
 - the offer is real and available for that cart
-- a fan read as coming back on their own gets a reminder and nothing else
-- a fan read as gone never gets just a reminder
+- a cart under 24 hours old gets a reminder and nothing that costs money
+- a cart over 24 hours old never gets just a reminder
 - the price the agent claimed matches the price we work out ourselves
 
 Sixty test carts pass all six. **This is the part that would run every morning.**
@@ -364,8 +359,8 @@ hours ago — it argued for silence. He's coming back on his own, so contacting 
 unnecessary.
 
 That's a fair argument and it's not the call I'd make. He didn't change his mind three
-hours ago, he got interrupted. A reminder costs the club nothing, so staying quiet
-doesn't save anything — it just loses a sale we could have had.
+hours ago, he got interrupted. Staying quiet doesn't save the club anything. It just
+loses a sale we could have had.
 
 What I changed wasn't the prompt. Arguing a model into agreeing with you isn't a policy,
 it's a coincidence you have to rediscover every time the wording changes. It's a rule in

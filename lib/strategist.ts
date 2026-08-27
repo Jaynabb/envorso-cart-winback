@@ -68,14 +68,12 @@ Call the propose_offer tool exactly once.`;
 }
 
 export function buildStrategistUserPrompt(cart: CartFacts, read: FanRead): string {
-  const tier = allowedTier(read.return_likelihood, cart.abandoned_hours_ago);
+  const tier = allowedTier(cart.abandoned_hours_ago);
   // A "medium" read is genuine uncertainty, so the agent is shown both tiers
   // and has to make the call in the open rather than have a threshold make it
   // silently. Everything else is decided by the read.
-  const tiers: ("free" | "paid")[] = tier === null ? ["free", "paid"] : [tier];
 
-  const menu = tiers
-    .flatMap((t) => menuFor(cart, t))
+  const menu = menuFor(cart, tier)
     .map((o) => {
       // One number, stated flatly. An earlier version said "no cash, but..."
       // next to the figure for an upgrade, and the reviewer read the words and
@@ -98,12 +96,8 @@ export function buildStrategistUserPrompt(cart: CartFacts, read: FanRead): strin
 
   const tierNote =
     tier === "free"
-      ? cart.abandoned_hours_ago < COOLING_OFF_HOURS
-        ? `\nThis cart was left ${cart.abandoned_hours_ago} hours ago, inside the club's first ${COOLING_OFF_HOURS} hours. No money goes out that soon — most carts this new finish themselves, so a discount would sell the same tickets for less. The reminder is the only thing on the menu.\n`
-        : "\nThis fan was read as likely to finish the cart on their own, so the reminder is the only thing on the menu. Discounts and upgrades are not options here. They were going to buy either way — a discount would sell them the same tickets for less money.\n"
-      : tier === "paid"
-        ? "\nThis fan was read as unlikely to come back on their own, so the reminder is off the menu. They have already shown you that being reminded isn't what's missing. Pick a discount or the upgrade, or say nothing here would work and the marketer holds the cart.\n"
-        : "\nThis read is genuinely uncertain, so the reminder AND the discounts are on the menu. The call is yours to make and to justify.\n";
+      ? `\nThis cart was left ${cart.abandoned_hours_ago} hours ago, inside the club's first ${COOLING_OFF_HOURS} hours. No money goes out that soon — most carts this new get finished anyway, so a discount would sell the same tickets for less. The reminder is the only thing on the menu.\n`
+      : `\nThis cart has sat for ${cart.abandoned_hours_ago} hours, past the club's first ${COOLING_OFF_HOURS}, so the reminder is off the menu. Being reminded isn't what's missing by now. Pick from what's below, or say nothing here would work and the marketer holds the cart.\n`;
 
   return `The analyst's read of this fan:
 

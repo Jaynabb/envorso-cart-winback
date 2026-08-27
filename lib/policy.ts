@@ -61,10 +61,12 @@ export const TOO_FRESH_HOURS = 2;
  * carts that are a few hours old finish themselves, so a discount inside that
  * window sells the same tickets for less. After a day, that stops being true.
  *
- * This is a club decision and it's the club's to change. What it is NOT is a
- * claim about the data, which is why it can sit next to the analyst's read
- * rather than argue with it: the clock says how soon money is allowed, the
- * read says whether money is warranted at all. A cart has to clear both.
+ * The clock decides this on its own. An earlier version let the analyst's read
+ * override it — a fan read as returning anyway dropped back to a reminder
+ * however long the cart had sat. That fired on 11 of 39 offers, always the same
+ * kind of fan, which meant it wasn't a judgement at all: it was the rule "don't
+ * discount your regulars", implemented as a model's opinion instead of written
+ * down. A rule that only exists inside a prompt is a rule nobody can read.
  */
 export const COOLING_OFF_HOURS = 24;
 
@@ -109,16 +111,8 @@ export const MILESTONE_SEATS = 2;
  * strategist makes the call and writes down why, the reviewer argues, and a
  * marketer sees both.
  */
-export function allowedTier(
-  likelihood: FanRead["return_likelihood"],
-  abandonedHoursAgo: number,
-): "free" | "paid" | null {
-  // The clock first. Inside the first day the answer is a reminder whatever
-  // the analyst thought, because the club has decided not to spend that soon.
-  if (abandonedHoursAgo < COOLING_OFF_HOURS) return "free";
-  if (likelihood === "high") return "free";
-  if (likelihood === "medium") return null;
-  return "paid";
+export function allowedTier(abandonedHoursAgo: number): "free" | "paid" {
+  return abandonedHoursAgo < COOLING_OFF_HOURS ? "free" : "paid";
 }
 
 /**
@@ -377,7 +371,7 @@ export function checkInvariants(cart: CartFacts, decision: Decision): string[] {
   // did we spend money on someone who was coming back without us?
   if (decision.read) {
     const likelihood = decision.read.return_likelihood;
-    const tier = allowedTier(likelihood, cart.abandoned_hours_ago);
+    const tier = allowedTier(cart.abandoned_hours_ago);
     const cost = totalCost(offer, cart);
 
     if (tier === "free" && offer.tier === "paid") {

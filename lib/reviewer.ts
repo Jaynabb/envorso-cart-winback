@@ -72,8 +72,7 @@ export function buildReviewerUserPrompt(
   offerId: string,
 ): string {
   const offer = getOffer(offerId);
-  const tier = allowedTier(read.return_likelihood, cart.abandoned_hours_ago);
-  const tiers: ("free" | "paid")[] = tier === null ? ["free", "paid"] : [tier];
+  const tier = allowedTier(cart.abandoned_hours_ago);
   const cheapest = cheapestPaid(cart);
 
   // The proposal STAYS IN this list, marked.
@@ -87,8 +86,7 @@ export function buildReviewerUserPrompt(
   // was sound given the list it was shown. The list was wrong.
   //
   // The whole menu, in price order, with the proposal in its true place.
-  const alternatives = tiers
-    .flatMap((t) => menuFor(cart, t))
+  const alternatives = menuFor(cart, tier)
     .map((o) => {
       const price = `$${totalCost(o, cart).toFixed(2)}`;
       const delta = totalCost(o, cart) - (offer ? totalCost(offer, cart) : 0);
