@@ -133,18 +133,16 @@ personalised past the segment, no multi-team version, no self-serve rules.
 
 ### How I'd know the offers are any good
 
-Four ways, and they answer different questions. Only two of them keep working once this
-is real.
+Two things I can check today. Two I can't check until it's actually sending.
 
-**Today — grade it against answers I wrote first.** Before any agent ran, I wrote down
-what each of the five carts should get and why. Then I scored the agents against that,
-not the other way round. `scripts/eval.mts` does it and they match on all five: which
-carts get an offer, which offer, and how the fan was read.
+**Today — does it do what I said it should?**
 
-That only works because I sat and thought about five carts. It can't grow.
+I wrote down what each of the five carts should get, and why, before any agent ran. Then
+I scored the agents against that, not the other way round. They match on all five: which
+carts get an offer, which offer, and how the fan was read. That only works because I sat
+and thought about five carts, so it can't grow past them.
 
-**Every morning — six checks that need nobody.** These are arithmetic, so they run on any
-day's carts with no answers written in advance:
+Then six checks that need no answers written in advance, so they work on any day's carts:
 
 - the fan opted in to email
 - nothing goes out under two hours
@@ -153,18 +151,24 @@ day's carts with no answers written in advance:
 - nobody gets a bare reminder when a reminder won't move them
 - the price the agent claimed matches the price we work out ourselves
 
-Sixty test carts pass all six. **This is the part that would actually run in
-production.** The answer key is for building it; these are for operating it.
+Sixty test carts pass all six. **This is the part that would run every morning.**
 
-**Once it's sending — hold ten percent back.** If we send an offer and the fan buys, that
-looks like a win, but some of those fans were buying anyway. The only honest number is
-the difference between the fans we contacted and a group we deliberately didn't. There's
-no code for this yet, because nothing sends yet — approving hands the marketer text to
-paste.
+**What neither of those tells me — whether the offers actually work.**
 
-**Always — watch what the marketer does.** Every approve, edit and reject is a verdict on
-the agent. If four in ten reminders come back rewritten, the reminder rule is wrong. It
-costs nothing to collect and one engineer can keep it running.
+Both only prove the system does what I told it to. Neither says whether what I told it
+was right. Two things would, and both need this to be sending for real.
+
+**A control group.** Say we send a fan 10% off and they buy. Did the offer work? There's
+no way to tell — plenty of them were going to buy anyway, and we just paid for it. So
+hold back a tenth of the fans who qualified, send them nothing, and compare the two
+groups. The difference is what the offers actually rescued. Without that, every campaign
+looks like it works, including a bad one.
+
+**The marketer's edits.** Every card has Approve, Edit and Reject on it. When a marketer
+edits an offer before sending, they're telling us the agent got it wrong — and by picking
+a different one, they're telling us what it should have been. Logging those clicks grades
+the tool for free, with nobody doing extra work. If lapsed fans keep getting bumped from
+10% to 15%, the rule about purchase history is wrong.
 
 ### What it costs to run
 
