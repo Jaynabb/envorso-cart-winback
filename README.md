@@ -30,7 +30,9 @@ Agent 1 works out who the fan is. Agent 2 picks the offer. Agent 3 argues agains
 Each one only sees what the step before it produced, which stops a single model deciding
 both who the fan is and what they deserve.
 
-**There are two rules, and that's all of them.**
+**The rules.** Seven, all fixed in code. An agent can't overrule any of them.
+
+*Before any agent runs — can we contact this person at all?*
 
 1. **No email opt-in, no contact.** `C-1003` stops here and never reaches an agent. You
    shouldn't need a language model to notice you don't have permission to email someone.
@@ -38,7 +40,25 @@ both who the fan is and what they deserve.
    something behind" is the worst message to send someone typing in their card number.
    `C-1004` left an hour ago, so he waits.
 
-Everything after that is the agents, and a person approves whatever they come up with.
+*What the agents are allowed to choose from:*
+
+3. **Coming back on their own?** Only the free options are on their menu. Spending money
+   there buys a sale the club already had.
+4. **And silence isn't one of those options.** If we can reach them and the cart is
+   genuinely abandoned, they hear something. A reminder is free, so staying quiet saves
+   nothing.
+5. **Not coming back on their own?** Only the options that cost money. A reminder won't
+   move someone who has been gone 300 days.
+6. **Which discount is set by history, not by the agent.** Never bought before: 15%.
+   Bought before and stopped: 10%.
+7. **Nothing above them, nothing to upgrade to.** A fan already in the Club can't be
+   moved up.
+
+Plus one thing the club gives back rather than spends: crossing 15, 30 or 45 tickets
+earns a voucher, two seats, one step up, on a later order.
+
+The agents decide who the fan is, whether an offer is warranted at all, and which of the
+options in front of them to use. A person approves every one before it goes anywhere.
 
 ---
 
@@ -53,16 +73,10 @@ worked, and you paid for a sale you already had.
 So this asks a different question. **Would this fan have come back on their own?** The
 less likely that is, the more we give. Not the size of the cart. Not how loyal they are.
 
-That answer decides one thing: whether the offer is allowed to cost anything.
-
-**A fan who was coming back anyway gets a reminder.** It says their cart is still there.
-No discount, no perk, nothing attached. It's roughly four in every ten things this system
-sends, and it's the reason "don't spend money on them" doesn't turn into "ignore them".
-Money and contact are two different decisions. Staying quiet saves the club nothing, it
-just loses a sale it could have had.
-
-**A fan who wasn't gets something that costs money**, because a reminder won't move
-someone who has been gone 300 days. Being reminded isn't what they're missing.
+That answer decides one thing: whether the offer is allowed to cost anything. It does
+not decide whether we talk to them at all. Those are two different decisions, and keeping
+them apart is why "don't spend money on this fan" doesn't turn into "ignore this fan" —
+a reminder is free, and it's roughly four in every ten things this system sends.
 
 | cart | | what happens |
 |---|---|---|
@@ -103,10 +117,11 @@ C-1005 — 2 Upper Deck seats, $70 cart
 
 The upgrade costs five times the discount, so it rarely wins.
 
-Which discount depends on whether the fan has bought before. Someone who bought and
-stopped gets 10%: they know what a ticket costs and chose not to buy, so the smaller one
-tests whether price is the problem. Someone who has never bought gets 15%, because that
-is the club buying a supporter rather than discounting a cart.
+Which discount is set by history rather than by the agent, for a reason. Someone who
+bought and stopped knows what a ticket costs and chose not to buy this time, so 10% is
+the right first test of whether price is the problem. Someone who has never bought gets
+15%, because that isn't a discount on a $140 cart — it's the club buying a supporter it
+has no evidence about, and there's no cheaper way to price one.
 
 ### Loyalty
 
