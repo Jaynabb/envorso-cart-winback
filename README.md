@@ -83,9 +83,8 @@ regardless. **The club just sold the same tickets for less money.**
 So this asks a different question. **Would this fan have come back on their own?** The
 less likely, the more we give. Not the size of the cart. Not how loyal they are.
 
-It decides whether they get a reminder or one of the three that cost money. It doesn't
-decide whether we contact them at all — the reminder is free, so "don't spend on this
-fan" never becomes "ignore them".
+It decides whether they get a reminder or a discount — not whether we contact them at
+all. The reminder is free, so "don't spend on this fan" never becomes "ignore them".
 
 | cart | | what happens |
 |---|---|---|
@@ -112,10 +111,9 @@ Lower Bowl   C-1001     $96 / 2 seats  =  $48   midpoint
 Five options: nothing, a reminder, a free seat upgrade, 10% off, 15% off. The agent picks
 one by name and can't invent others.
 
-After 24 hours the offer is a discount, and which one is set by purchase history. The
-seat upgrade is on the list as well, and it's the one that needs watching: it takes no
-cash at the till, so it looks like it costs nothing. It doesn't. The club hands over a
-better seat and gets back a cheaper one, and the gap is money it won't collect:
+The seat upgrade is the one that needs watching. It takes no cash at the till, so it
+looks like it costs nothing. It doesn't — the club hands over a better seat and gets back
+a cheaper one, and the gap is money it won't collect:
 
 ```
 C-1005 — 2 Upper Deck seats, $70 cart
