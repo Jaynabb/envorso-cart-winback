@@ -75,9 +75,9 @@ regardless. **The club just sold the same tickets for less money.**
 So this asks a different question. **Would this fan have come back on their own?** The
 less likely, the more we give. Not the size of the cart. Not how loyal they are.
 
-It decides which list the agent picks from: a reminder on its own, or the three that cost
-the club money. It doesn't decide whether we contact them at all — a reminder is free, so
-"don't spend money on this fan" never becomes "ignore them".
+It decides whether they get a reminder or one of the three that cost money. It doesn't
+decide whether we contact them at all — the reminder is free, so "don't spend on this
+fan" never becomes "ignore them".
 
 | cart | | what happens |
 |---|---|---|
