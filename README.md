@@ -169,16 +169,21 @@ I scored the agents against that, not the other way round. They match on all fiv
 carts get an offer, which offer, and how the fan was read. That only works because I sat
 and thought about five carts, so it can't grow past them.
 
-Then six checks that need no answers written in advance, so they work on any day's carts:
+Then five checks that need no answers written in advance, so they work on any day's
+carts. Four of them are the rules above, restated as arithmetic:
 
 - the fan opted in to email
-- nothing goes out under two hours, and nothing costing money under 24
-- the offer is real and available for that cart
-- a cart under 24 hours old gets a reminder and nothing that costs money
+- nothing at all goes out under two hours
+- a cart under 24 hours old gets a reminder, and nothing that costs money
 - a cart over 24 hours old never gets just a reminder
-- the price the agent claimed matches the price we work out ourselves
 
-Sixty test carts pass all six. **This is the part that would run every morning.**
+The fifth is the one that isn't a rule: **the price the agent claimed matches the price
+we work out ourselves.** Nothing downstream uses the agent's number — we calculate the
+real one anyway — so this exists purely to catch an agent that reasoned from a price it
+misread. That's exactly what happened when the upgrade was listed at `$0`: the offer id
+was right, the reasoning was sound, and the number underneath it was wrong.
+
+Sixty test carts pass all five. **This is the part that would run every morning.**
 
 **What neither of those tells me — whether the offers actually work.**
 

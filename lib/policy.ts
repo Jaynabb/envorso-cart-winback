@@ -356,6 +356,11 @@ export function checkInvariants(cart: CartFacts, decision: Decision): string[] {
     );
   }
 
+  // A backstop, not a check that earns its place on the list. The pipeline
+  // holds any cart whose proposed or adjusted offer isn't in the catalog, so by
+  // the time a decision exists the id is already known good. Kept because this
+  // function is callable on its own and shouldn't crash on junk; not claimed as
+  // one of the checks that would run every morning, because it can't fire.
   const offer = decision.offer_id ? getOffer(decision.offer_id) : undefined;
   if (!offer) {
     problems.push(`CATALOG: "${decision.offer_id}" is not an offer we sell.`);
