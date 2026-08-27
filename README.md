@@ -217,22 +217,17 @@ Measured, not estimated:
 fine, because the mistake is in something nobody checked. That's the whole failure mode,
 and it doesn't look like a failure.
 
-
 Two from this build. The offer list priced a seat upgrade at `$0`, so the agents gave
 them away. And the list of alternatives shown to Agent 3 left out the offer it was
 reviewing, so it said *"the proposed 10% discount isn't even offered here"* and moved two
 carts to the more expensive option.
 
-Five things stop a bad offer reaching a fan:
+Three things stop a bad offer reaching a fan:
 
 1. A person approves every one, with the price and the reasoning on the card.
-2. Agent 3 never sees why the offer was chosen, so a good-sounding reason can't talk it
-   round.
-3. Every check has something enforcing it. An old price cap was reported for three runs
-   while the offers went out anyway, because nothing removed them from the offer list.
-4. Numbers get tested rather than defended. Sweeping one across its range shows whether
-   it changes any answer at all.
-5. It fails closed. Anything breaks, the cart holds and sends nothing.
+2. Agent 3 checks it without being told why Agent 2 picked it, so it judges the offer
+   and not the argument for it.
+3. If anything breaks, the cart holds and sends nothing.
 
 ---
 
