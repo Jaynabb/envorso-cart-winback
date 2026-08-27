@@ -53,10 +53,16 @@ worked, and you paid for a sale you already had.
 So this asks a different question. **Would this fan have come back on their own?** The
 less likely that is, the more we give. Not the size of the cart. Not how loyal they are.
 
-That answer decides one thing: whether the offer is allowed to cost anything. A fan who
-was coming back anyway gets something free — a reminder costs the club nothing, so
-staying quiet saves nothing either. A fan who wasn't gets something that costs money,
-because a reminder won't move someone who has been gone 300 days.
+That answer decides one thing: whether the offer is allowed to cost anything.
+
+**A fan who was coming back anyway gets a reminder.** It says their cart is still there.
+No discount, no perk, nothing attached. It's roughly four in every ten things this system
+sends, and it's the reason "don't spend money on them" doesn't turn into "ignore them".
+Money and contact are two different decisions. Staying quiet saves the club nothing, it
+just loses a sale it could have had.
+
+**A fan who wasn't gets something that costs money**, because a reminder won't move
+someone who has been gone 300 days. Being reminded isn't what they're missing.
 
 | cart | | what happens |
 |---|---|---|
@@ -288,8 +294,8 @@ cheapest that works. Every fan who fit the first also qualified for the cheaper 
 as a live option.
 
 Now it depends on whether the fan has bought before, which is a field in the data.
-Bought and stopped, 10%. Never bought, 15%. Across sixty carts that's 21 tens and 6
-fifteens, where before it was 29 tens and no fifteens at all.
+Bought and stopped, 10%. Never bought, 15%. On the last sixty-cart run that's 20 tens and
+6 fifteens, where before the change it was 29 tens and no fifteens at all.
 
 ### 4. The club can't bleed money on these upgrades
 
@@ -320,6 +326,24 @@ Capped at two seats, that same $37 step is $37 × 2 = **$74**. `C-1001`'s upgrad
 down the same way: it was being priced off what he'd paid per seat, 96 ÷ 2 = $48, so
 ($90 − $48) × 2 = $84. Priced off the section instead, it's $74 as well. One step is one
 step, whoever is buying.
+
+### 5. Why are we sending nothing to a fan who just got interrupted?
+
+Asked what to do with `C-1001` — 14 tickets, walked away from a half-finished cart three
+hours ago — it argued for silence. He's coming back on his own, so contacting him is
+unnecessary.
+
+That's a fair argument and it's not the call I'd make. He didn't change his mind three
+hours ago, he got interrupted. A reminder costs the club nothing, so staying quiet
+doesn't save anything — it just loses a sale we could have had.
+
+What I changed wasn't the prompt. Arguing a model into agreeing with you isn't a policy,
+it's a coincidence you have to rediscover every time the wording changes. It's a rule in
+the code now: if we can reach them and the cart is genuinely abandoned, they hear
+something. Whether it costs anything is what the read decides.
+
+On the last sixty-cart run that's 18 reminders out of 44 offers — more than either
+discount, and none of it costing a penny.
 
 ### What these have in common
 
