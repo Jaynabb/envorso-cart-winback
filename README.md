@@ -42,8 +42,9 @@ both who the fan is and what they deserve.
 
 *What the agents are allowed to choose from:*
 
-3. **Coming back on their own?** Only the free options are on their menu. Spending money
-   there buys a sale the club already had.
+3. **Coming back on their own?** Only the free options go on the agent's menu. A discount
+   can't win back someone who was already going to buy — they buy either way, and the
+   club just gets less for it.
 4. **And silence isn't one of those options.** If we can reach them and the cart is
    genuinely abandoned, they hear something. A reminder is free, so staying quiet saves
    nothing.
@@ -66,9 +67,10 @@ options in front of them to use. A person approves every one before it goes anyw
 
 ### The question
 
-Most cart tools ask how to win the cart back. But the easiest carts were coming back
-anyway, and the result won't tell you which ones. The fan buys, it looks like the offer
-worked, and you paid for a sale you already had.
+Most cart tools ask how to win the cart back. The trouble is that the easiest carts to
+win back are the ones that were coming back anyway, and the result can't tell them apart.
+You send 10% off, the fan buys, and it looks like it worked. But they were going to buy
+regardless. **The club just sold the same tickets for less money.**
 
 So this asks a different question. **Would this fan have come back on their own?** The
 less likely that is, the more we give. Not the size of the cart. Not how loyal they are.
@@ -103,8 +105,12 @@ Lower Bowl   C-1001     $96 / 2 seats  =  $48   midpoint
 There are five options: nothing, a reminder, a free seat upgrade, 10% off, 15% off. The
 agent picks one by name and can't invent others.
 
-The rule is take the cheapest one that would work. It has to be in dollars, because a
-free upgrade is not free — it hands over a better seat and takes back a cheaper one:
+The rule is take the cheapest one that would work.
+
+That only works if every option has a real price on it, and one of them hides its price.
+A free seat upgrade takes no cash at the till, so it looks like it costs nothing. It
+doesn't. The club hands over a better seat and gets back a cheaper one, and the gap
+between them is real money it won't collect:
 
 ```
 C-1005 — 2 Upper Deck seats, $70 cart
@@ -115,13 +121,15 @@ C-1005 — 2 Upper Deck seats, $70 cart
   10% off       $70 x 0.10  =            $7
 ```
 
-The upgrade costs five times the discount, so it rarely wins.
+$36 to rescue a $70 cart, against $7 for the discount. The gentler-sounding offer costs
+five times as much, which is why the upgrade almost never wins.
 
-Which discount is set by history rather than by the agent, for a reason. Someone who
-bought and stopped knows what a ticket costs and chose not to buy this time, so 10% is
-the right first test of whether price is the problem. Someone who has never bought gets
-15%, because that isn't a discount on a $140 cart — it's the club buying a supporter it
-has no evidence about, and there's no cheaper way to price one.
+Which of the two discounts a fan gets depends on whether they've bought before. Someone
+who bought and stopped already knows what a ticket costs and chose not to buy this time,
+so 10% is the smallest sensible test of whether price is what's stopping them. Someone
+who has never bought gets 15%, because that money isn't buying a $140 cart — it's buying
+a first-time supporter the club knows nothing about, and there's no cheaper way to find
+out whether they'll come.
 
 ### Loyalty
 
@@ -139,8 +147,9 @@ Lower Bowl seat      $53
 one step             $37   x 2 seats  =  $74
 ```
 
-It's owed rather than spent, so it never competes with the win-back decision, and nothing
-comes off the cart they're holding. The rule isn't published.
+They've earned it by buying 15 tickets, not by abandoning a cart, so it has nothing to do
+with the win-back decision and doesn't interfere with it. Nothing comes off the cart
+they're currently holding, and the club doesn't publish the rule.
 
 ### What I didn't build
 
@@ -330,8 +339,9 @@ one step             $37   x 6 seats  =  $222
 $222 on one order. Three changes:
 
 - **It's redeemed on a later order.** Nothing comes off the cart in hand. That mattered
-  more than the money — he already had six seats in the basket and was going to pay for
-  them, so upgrading those buys a sale the club already had.
+  more than the money. He already had six seats in the basket and was going to pay full
+  price for them. Upgrading those seats doesn't win anything back — it just charges him
+  less for a purchase he was already making.
 - **It's capped at two seats**, so the cost doesn't depend on how big a group they booked.
 - **The rule isn't announced.** Publish "every 15 tickets earns an upgrade" and it becomes
   a contract you have to honour forever, and someone works out that one cheap extra seat
@@ -355,7 +365,8 @@ doesn't save anything — it just loses a sale we could have had.
 What I changed wasn't the prompt. Arguing a model into agreeing with you isn't a policy,
 it's a coincidence you have to rediscover every time the wording changes. It's a rule in
 the code now: if we can reach them and the cart is genuinely abandoned, they hear
-something. Whether it costs anything is what the read decides.
+something. Whether that something costs the club anything is a separate question, and
+that's the one the agent answers.
 
 On the last sixty-cart run that's 18 reminders out of 44 offers — more than either
 discount, and none of it costing a penny.
