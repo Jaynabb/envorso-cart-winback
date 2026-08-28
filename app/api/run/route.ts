@@ -90,13 +90,14 @@ export async function POST(request: Request) {
 /** Re-generate copy after a marketer swaps the offer, without re-running agents. */
 export async function PUT(request: Request) {
   try {
-    const { cart_id, offer_id } = (await request.json()) as {
+    const { cart_id, offer_id, percent } = (await request.json()) as {
       cart_id: string;
       offer_id: string;
+      percent?: number;
     };
     const cart = loadCarts().find((c) => c.cart_id === cart_id);
     if (!cart) return NextResponse.json({ error: "Unknown cart" }, { status: 404 });
-    return NextResponse.json({ copy: buildCopy(cart, offer_id) });
+    return NextResponse.json({ copy: buildCopy(cart, offer_id, percent) });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return NextResponse.json({ error: message }, { status: 500 });

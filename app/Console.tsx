@@ -47,7 +47,31 @@ interface Meta {
 }
 
 type Filter = "offer" | "hold" | "blocked" | null;
-type Standing = { status: "approved" | "rejected" | null; offerId: string | null; copy: SendCopy | null };
+type Standing = {
+  status: "approved" | "rejected" | null;
+  offerId: string | null;
+  /** Set only when the marketer typed their own number. */
+  percent: number | null;
+  copy: SendCopy | null;
+};
+
+/** The id a marketer's own percentage travels under. Deliberately not a catalog entry. */
+const CUSTOM_DISCOUNT = "custom_discount";
+
+/**
+ * What the currently selected offer costs, whoever selected it.
+ *
+ * One function so the card and the running total can never disagree. They did
+ * once: the total read the server's figure from the moment the run finished,
+ * so editing a card moved the card and not the number above it.
+ */
+function costOf(item: Item, st?: Standing): number {
+  const id = st?.offerId ?? item.decision.offer_id;
+  if (id === CUSTOM_DISCOUNT) {
+    return Math.round(((item.cart.cart_value_usd * (st?.percent ?? 0)) / 100) * 100) / 100;
+  }
+  return item.options.find((o) => o.id === id)?.cost ?? 0;
+}
 
 export default function Console() {
   const [items, setItems] = useState<Item[] | null>(null);
@@ -92,11 +116,11 @@ export default function Console() {
   }
 
   /** Swap the offer, then re-render the copy for it. Agents don't re-run. */
-  async function pickOffer(item: Item, offerId: string) {
+  async function pickOffer(item: Item, offerId: string, percent?: number) {
     const res = await fetch("/api/run", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ cart_id: item.cart.cart_id, offer_id: offerId }),
+      body: JSON.stringify({ cart_id: item.cart.cart_id, offer_id: offerId, percent }),
     });
     const body = await res.json();
     setStanding((s) => ({
@@ -104,6 +128,7 @@ export default function Console() {
       [item.cart.cart_id]: {
         status: s[item.cart.cart_id]?.status ?? null,
         offerId,
+        percent: percent ?? null,
         copy: body.copy ?? null,
       },
     }));
@@ -139,9 +164,7 @@ export default function Console() {
     return items.reduce((sum, i) => {
       const st = standing[i.cart.cart_id];
       if (st?.status !== "approved") return sum;
-      const id = st.offerId ?? i.decision.offer_id;
-      const opt = i.options.find((o) => o.id === id);
-      return sum + (opt?.cost ?? 0);
+      return sum + costOf(i, st);
     }, 0);
   }, [items, standing]);
 
@@ -161,9 +184,10 @@ export default function Console() {
     return items.reduce(
       (acc, i) => {
         if (i.decision.outcome !== "offer") return acc;
-        const id = standing[i.cart.cart_id]?.offerId ?? i.decision.offer_id;
-        const opt = i.options.find((o) => o.id === id);
-        return { cost: acc.cost + (opt?.cost ?? 0), seats: acc.seats + (opt?.givenAway ?? 0) };
+        const st = standing[i.cart.cart_id];
+        const id = st?.offerId ?? i.decision.offer_id;
+        const seats = id === CUSTOM_DISCOUNT ? 0 : (i.options.find((o) => o.id === id)?.givenAway ?? 0);
+        return { cost: acc.cost + costOf(i, st), seats: acc.seats + seats };
       },
       { cost: 0, seats: 0 },
     );
@@ -288,7 +312,7 @@ export default function Console() {
                 editing={editing === item.cart.cart_id}
                 copied={copied}
                 onEdit={() => setEditing(editing === item.cart.cart_id ? null : item.cart.cart_id)}
-                onPick={(id) => pickOffer(item, id)}
+                onPick={(id, pct) => pickOffer(item, id, pct)}
                 onDecide={(s) => decide(item.cart.cart_id, s)}
                 onCopy={copyText}
               />
@@ -415,7 +439,7 @@ function Card({
   editing: boolean;
   copied: string | null;
   onEdit: () => void;
-  onPick: (offerId: string) => void;
+  onPick: (offerId: string, percent?: number) => void;
   onDecide: (status: "approved" | "rejected" | null) => void;
   onCopy: (key: string, text: string) => void;
 }) {
@@ -432,7 +456,9 @@ function Card({
 
   const offerId = standing?.offerId ?? d.offer_id;
   const copy = standing?.copy ?? item.copy;
+  const custom = offerId === CUSTOM_DISCOUNT ? (standing?.percent ?? null) : null;
   const chosen = item.options.find((o) => o.id === offerId);
+  const cost = costOf(item, standing);
 
   const laneClass =
     d.outcome === "offer" ? "lane" : d.outcome === "hold" ? "lane lane-hold" : "lane lane-blocked";
@@ -475,13 +501,19 @@ function Card({
               Showing the original after a marketer swapped it would have them
               approving one offer and sending another. */}
           <span className="offer-label">
-            {isOffer ? (chosen?.describe ?? d.headline) : "No offer today"}
+            {custom
+              ? `${custom}% off the cart — saves $${cost.toFixed(2)}`
+              : isOffer
+                ? (chosen?.describe ?? d.headline)
+                : "No offer today"}
           </span>
-          {isOffer && price && (
+          {isOffer && (custom ? (
+            <span className="price">${cost.toFixed(2)}</span>
+          ) : price ? (
             <span className={`price${chosen && chosen.cost === 0 ? " price-free" : ""}`}>
               {price}
             </span>
-          )}
+          ) : null)}
         </div>
         {/* An upgrade takes no cash, so its price looks made up unless the two
             lines behind it are on the card. Only shown for the upgrade — every
@@ -596,6 +628,16 @@ function Card({
                 </button>
               ))}
           </div>
+          {/* The list above is the agent's, and it's closed on purpose — it
+              can't invent an offer the club doesn't sell. This isn't the
+              agent. A marketer who has a reason the system doesn't know about
+              needs somewhere to put it, and a tool that won't let the person
+              approving it disagree is a tool nobody uses twice. */}
+          <CustomPercent
+            cartValue={cart.cart_value_usd}
+            current={custom}
+            onApply={(pct) => onPick(CUSTOM_DISCOUNT, pct)}
+          />
         </div>
       )}
 
@@ -651,5 +693,57 @@ function Card({
         </div>
       )}
     </article>
+  );
+}
+
+/**
+ * A marketer's own percentage.
+ *
+ * Deliberately shows the dollar figure before it's applied, because the whole
+ * point of the number on the card is that nobody spends without seeing what
+ * they're spending. Typing 40 and reading "$56.00" is the moment to think
+ * again, and it should happen before the click, not after.
+ */
+function CustomPercent({
+  cartValue,
+  current,
+  onApply,
+}: {
+  cartValue: number;
+  current: number | null;
+  onApply: (percent: number) => void;
+}) {
+  const [text, setText] = useState(current ? String(current) : "");
+  const pct = Number(text);
+  const ok = Number.isFinite(pct) && pct > 0 && pct <= 100;
+  const preview = ok ? Math.round(((cartValue * pct) / 100) * 100) / 100 : null;
+
+  return (
+    <form
+      className="custom"
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (ok) onApply(Math.round(pct * 10) / 10);
+      }}
+    >
+      <label className="custom-label" htmlFor={`pct-${cartValue}`}>
+        or set your own
+      </label>
+      <input
+        id={`pct-${cartValue}`}
+        className="custom-input"
+        inputMode="decimal"
+        placeholder="20"
+        value={text}
+        onChange={(e) => setText(e.target.value.replace(/[^\d.]/g, ""))}
+      />
+      <span className="custom-pct">% off</span>
+      <span className="custom-preview">
+        {preview === null ? "—" : `$${preview.toFixed(2)}`}
+      </span>
+      <button type="submit" className="opt" disabled={!ok || pct === current}>
+        {pct === current && ok ? "applied" : "apply"}
+      </button>
+    </form>
   );
 }

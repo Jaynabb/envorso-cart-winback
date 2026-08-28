@@ -1,5 +1,10 @@
 import type { CartFacts } from "./schema.ts";
 import { getOffer, upgradeTarget } from "./catalog.ts";
+
+/** The id a marketer's own percentage travels under. Never in the catalog. */
+export const CUSTOM_DISCOUNT = "custom_discount";
+
+const round2 = (n: number) => Math.round(n * 100) / 100;
 import { milestone, MILESTONE_SEATS } from "./policy.ts";
 
 /**
@@ -56,7 +61,33 @@ function milestoneLine(cart: CartFacts): string {
   return `\n\nOne more thing. Finish this order and you've earned ${seats} in the ${m.reward.section} at ${cart.section} prices, whenever you next book. It'll be waiting on your account.`;
 }
 
-export function buildCopy(cart: CartFacts, offerId: string): SendCopy {
+/**
+ * `percent` is the marketer typing their own number.
+ *
+ * The catalog is a closed set because the AGENT must not be able to invent an
+ * offer. A person can: they are the approval step, and a rule that stops them
+ * overriding it is a rule that stops the tool being used. So a custom discount
+ * is handled here rather than added to the catalog, which keeps the agent's
+ * menu closed and the human's open.
+ */
+export function buildCopy(cart: CartFacts, offerId: string, percent?: number): SendCopy {
+  if (offerId === CUSTOM_DISCOUNT && percent && percent > 0) {
+    const saved = round2((cart.cart_value_usd * percent) / 100).toFixed(2);
+    const seats = seatPhrase(cart);
+    return {
+      subject: `${percent}% off your Seawolves seats`,
+      email: `Hi,
+
+You left ${seats} in your cart. Here's ${percent}% off — $${saved} — if you'd like to come and see us.
+
+Finish up here: [CART LINK]
+
+See you at the match,
+Seattle Seawolves`,
+      sms: `${percent}% off your ${seats} for the Seawolves — $${saved} off. Finish up: [CART LINK]`,
+    };
+  }
+
   const offer = getOffer(offerId);
   const seats = seatPhrase(cart);
   const label = offer?.label ?? "your cart";
