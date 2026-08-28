@@ -204,7 +204,7 @@ export default function Console() {
         <h1 className="wordmark">
           Envorso <span>·</span> Win-back
         </h1>
-        <span className="masthead-sub">Seattle Seawolves · stale carts, last 7 days</span>
+        <span className="masthead-sub">Seattle Seawolves</span>
       </header>
 
       <div className="runbar">
