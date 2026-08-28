@@ -372,34 +372,24 @@ export function checkInvariants(cart: CartFacts, decision: Decision): string[] {
     problems.push(`CATALOG: ${offer.label} isn't available here — ${eligibility.why}`);
   }
 
-  // The spine, stated the only way it can be checked without inventing a scale:
-  // did we spend money on someone who was coming back without us?
-  if (decision.read) {
-    const likelihood = decision.read.return_likelihood;
-    const tier = allowedTier(cart.abandoned_hours_ago);
-    const cost = totalCost(offer, cart);
+  // The schedule, checked in both directions. Not guarded on the read existing,
+  // because the clock decides this and the read has nothing to do with it.
+  const tier = allowedTier(cart.abandoned_hours_ago);
+  const cost = totalCost(offer, cart);
 
-    if (tier === "free" && offer.tier === "paid") {
-      // Say WHICH rule stopped it. Both send the same offer back, and they are
-      // not the same problem: one is the club's schedule, the other is the
-      // analyst's read of this particular fan. An alarm that names the wrong
-      // cause is barely better than no alarm.
-      problems.push(
-        cart.abandoned_hours_ago < COOLING_OFF_HOURS
-          ? `TOO SOON: ${offer.label} costs $${cost.toFixed(2)} and the cart is only ${cart.abandoned_hours_ago} hours old. Nothing costing money goes out inside ${COOLING_OFF_HOURS} hours — a cart this new usually gets finished anyway.`
-          : `INCREMENTALITY: ${offer.label} costs $${cost.toFixed(2)} and went to a fan read as likely to return without us. That is money spent on a sale we already had.`,
-      );
-    }
+  if (tier === "free" && offer.tier === "paid") {
+    problems.push(
+      `TOO SOON: ${offer.label} costs $${cost.toFixed(2)} and the cart is only ${cart.abandoned_hours_ago} hours old. Nothing costing money goes out inside ${COOLING_OFF_HOURS} hours — a cart this new usually gets finished anyway.`,
+    );
+  }
 
-    // The other direction, which the old ladder needed a made-up floor to
-    // catch: we decided this fan won't come back on their own, then sent them
-    // the one message they'll open with nothing in it.
-    if (tier === "paid" && offer.id === "reminder_only") {
-      problems.push(
-        `TOKEN OFFER: a bare reminder went to a fan read as "${likelihood}" to return unaided. Either give them a reason to come back or hold and send nothing.`,
-      );
-    }
-
+  // The other direction, and the one a 60-cart run actually caught: a reviewer
+  // swapped a discount for a bare reminder on a cart four days old, because the
+  // adjustment check only guarded against overspending.
+  if (tier === "paid" && offer.id === "reminder_only") {
+    problems.push(
+      `TOKEN OFFER: a bare reminder went to a cart that has sat ${cart.abandoned_hours_ago} hours, past the club's first ${COOLING_OFF_HOURS}. Being reminded isn't what's missing by now — give them a reason to come back, or hold and send nothing.`,
+    );
   }
 
   // The model asserting a number we can compute ourselves.

@@ -209,12 +209,18 @@ async function decideOne(
     const replacement = review.replacement_offer_id
       ? getOffer(review.replacement_offer_id)
       : undefined;
-    // The replacement has to clear the same bar as the original, or "adjust"
-    // becomes a way to smuggle in an offer nobody validated. Sending nothing is
-    // always allowed; spending money on a fan who was coming back is not.
+    // The replacement has to be on the same list the strategist picked from, or
+    // "adjust" becomes a way to smuggle in an offer nobody validated.
+    //
+    // This used to guard one direction only — it stopped a reviewer spending on
+    // a cart too new for money, and then let it do the opposite. On a 60-cart
+    // run a reviewer swapped a discount for a bare reminder on a cart that had
+    // sat four days, which is the rule about reminders read backwards. Sending
+    // nothing is still always allowed, because holding is never the unsafe
+    // choice.
     const valid =
       replacement &&
-      (replacement.id === "no_offer" || tier !== "free" || replacement.tier === "free") &&
+      (replacement.id === "no_offer" || replacement.tier === tier) &&
       replacement.id !== proposed.id;
 
     if (!replacement || !replacement.eligible(cart).ok || !valid) {
