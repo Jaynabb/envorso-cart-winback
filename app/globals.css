@@ -664,3 +664,21 @@ main {
 /* Needs review. Red, because it is the only group on the page that means
    something is wrong rather than something was decided. */
 .counter-broken .counter-n { color: var(--red); }
+
+/* Re-run just the carts that broke. Sits in the band so it reads as an action
+   on that group rather than another run of everything. */
+.band-btn {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-1);
+  background: transparent;
+  border: 1px solid var(--rule-strong);
+  border-radius: 3px;
+  padding: 3px 9px;
+  cursor: pointer;
+  margin-right: 10px;
+}
+.band-btn:hover:not(:disabled) { border-color: var(--green-dim); color: var(--green); }
+.band-btn:disabled { opacity: 0.4; cursor: default; }

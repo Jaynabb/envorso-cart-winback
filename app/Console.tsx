@@ -84,19 +84,43 @@ export default function Console() {
   const [editing, setEditing] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
 
-  async function run() {
+  /**
+   * `ids` re-runs just those carts and merges the results back in.
+   *
+   * A model that fell over on one cart shouldn't cost a full pass over the
+   * queue to recover from, and it definitely shouldn't throw away the
+   * decisions a marketer has already made on the other four.
+   */
+  async function run(ids?: string[]) {
     setRunning(true);
     setFatal(null);
     try {
-      const res = await fetch("/api/run", { method: "POST" });
+      const res = await fetch("/api/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(ids?.length ? { ids } : {}),
+      });
       const body = await res.json();
       if (!res.ok) {
         setFatal(body.error ?? `The run failed (${res.status}).`);
         return;
       }
-      setItems(body.items);
+      if (ids?.length) {
+        const fresh = new Map<string, Item>(
+          (body.items as Item[]).map((i) => [i.cart.cart_id, i]),
+        );
+        setItems((prev) => (prev ?? []).map((i) => fresh.get(i.cart.cart_id) ?? i));
+        // Only the re-run carts lose their standing. Everything else keeps it.
+        setStanding((st) => {
+          const next = { ...st };
+          for (const id of ids) delete next[id];
+          return next;
+        });
+      } else {
+        setItems(body.items);
+        setStanding({});
+      }
       setMeta(body.meta);
-      setStanding({});
       setRanAt(
         new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }),
       );
@@ -214,7 +238,7 @@ export default function Console() {
       </header>
 
       <div className="runbar">
-        <button className="run" onClick={run} disabled={running}>
+        <button className="run" onClick={() => run()} disabled={running}>
           {running ? "Reading carts…" : items ? "Run again" : "Review today's carts"}
         </button>
         {/* What the API call cost is an engineer's number, and this screen
@@ -273,7 +297,7 @@ export default function Console() {
       {groups && meta && (
         <div className={`counters${filter ? " is-filtered" : ""}`}>
           <Counter
-            n={meta.total}
+            n={items?.length ?? meta.total}
             label="Carts"
             tone=""
             active={filter === null}
@@ -321,6 +345,15 @@ export default function Console() {
             title="Needs review — something went wrong here"
             items={groups.broken}
             show={!filter || filter === "broken"}
+            action={
+              <button
+                className="band-btn"
+                disabled={running}
+                onClick={() => run(groups.broken.map((i) => i.cart.cart_id))}
+              >
+                {running ? "running…" : `Re-run ${groups.broken.length}`}
+              </button>
+            }
             render={(item) => (
               <Card
                 key={item.cart.cart_id}
@@ -440,11 +473,13 @@ function Section({
   items,
   show,
   render,
+  action,
 }: {
   title: string;
   items: Item[];
   show: boolean;
   render: (item: Item) => React.ReactNode;
+  action?: React.ReactNode;
 }) {
   if (!show || items.length === 0) return null;
   return (
@@ -452,6 +487,7 @@ function Section({
       <div className="band">
         <span className="band-title">{title}</span>
         <span className="band-rule" />
+        {action}
         <span className="band-n">{items.length}</span>
       </div>
       {items.map(render)}
