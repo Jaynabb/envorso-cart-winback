@@ -60,15 +60,22 @@ export const SECTION_PRICE: Record<string, number> = {
  * you free up, weighted by the same. I had those two chances in here as 70% and
  * 55% — numbers I had made up, doing real work in real arithmetic.
  *
- * The Seawolves report selling out Starfire, which holds just over 4,000. If a
- * section sells out, both probabilities are 1 and the whole thing collapses to
- * the price difference: a $53 seat given for a $35 one costs $18. No estimate
- * required.
+ * I replaced them with a claim that the Seawolves sell out, which was also
+ * something I had made up. Starfire holds about 4,000-4,500 and a regular
+ * season match draws about 2,000-3,500, so roughly half to four fifths full.
+ * They do not sell out.
  *
- * That is also the conservative case. Anything less than a sell-out makes an
- * upgrade CHEAPER than this, down to free if the better seat was never going to
- * sell — so pricing at the gap can overstate the cost but never hides one.
- * Better to be wrong in the direction that spends less of the club's money.
+ * So the cost is priced at the full gap anyway — a $53 seat handed over for a
+ * $35 one costs $18 — and the reason is now the honest one rather than a
+ * sell-out that isn't happening. Pricing at the gap is the EXPENSIVE end. On
+ * those attendance numbers the true cost is nearer two thirds of it, so this
+ * overstates what an upgrade costs and can never hide one. Better to be wrong
+ * in the direction that spends less of the club's money.
+ *
+ * Being wrong by a third changes no decision here, which is why it stays a flat
+ * gap instead of a probability: on the biggest upgrade in the set it moves $72
+ * to about $47, against $21 for the discount that beats it either way. A number
+ * that can't change an answer isn't worth the arithmetic.
  *
  * Per-fixture fill lives in the ticketing platform, which Envorso runs. When
  * that's wired in, this becomes a lookup and the number falls for quiet
