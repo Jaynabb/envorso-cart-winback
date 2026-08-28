@@ -274,7 +274,7 @@ export default function Console() {
         <div className={`counters${filter ? " is-filtered" : ""}`}>
           <Counter
             n={meta.total}
-            label="Reviewed"
+            label="Carts"
             tone=""
             active={filter === null}
             onClick={() => setFilter(null)}
