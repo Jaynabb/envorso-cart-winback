@@ -27,8 +27,18 @@ cart ─▶ RULES ─▶ AGENT 1 ─▶ AGENT 2 ─▶ AGENT 3 ─▶ marketer
 ```
 
 Agent 1 works out who the fan is. Agent 2 picks the offer. Agent 3 argues against it.
-Each one only sees what the step before it produced, which stops a single model deciding
-both who the fan is and what they deserve.
+Each one is handed the previous step's answer rather than the raw row, and two of them
+are deliberately kept in the dark:
+
+- **Agent 1 is never told the cart value.** It gets the fan's history and the cart's age
+  and nothing else. Money has no bearing on whether someone returns unaided, and if it's
+  on the page the read bends toward it.
+- **Agent 3 is never told why Agent 2 chose the offer.** It gets the fan, the offer and
+  the priced list. A confident-sounding reason is the easiest thing for a model to write,
+  and if you show it one, it grades the reason instead of the offer.
+
+That's what stops a single model deciding both who this fan is and what they deserve, and
+then bending the first to justify the second.
 
 **The rules.** All fixed in code. An agent can't overrule any of them.
 
@@ -63,6 +73,22 @@ tickets earns two seats one section up, on a later order.
 The rules decide what's on the list. The agents work out who the fan is, choose from
 what's left, argue against each other, and write the reasoning a marketer reads. A person
 approves every one before it goes anywhere.
+
+**The screen.** One card per cart, in three groups: the ones needing a decision, the ones
+too new to act on, and the ones with no email consent. Nothing disappears — a cart the
+system decided against is still on the page with the reason it was skipped.
+
+Each card leads with the offer and what it costs the club, then the agent's reason in a
+sentence or two. The reasoning chain behind it — who Agent 1 thought this fan was, what
+Agent 2 proposed, what Agent 3 said back — is folded away until someone doesn't believe
+the answer.
+
+**And the agent will be wrong sometimes, so the screen assumes it.** Every card has
+Approve, Edit and Reject. Edit swaps the offer for another one on the list, and the
+headline, the price, the day's total and the email all follow the new choice — no version
+where a marketer approves one offer and sends another. Approving doesn't write to a
+database, because there's no CRM to write to: it produces the email and SMS text, ready
+to paste. Nothing reaches a fan without someone clicking.
 
 ---
 
