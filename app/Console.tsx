@@ -25,6 +25,7 @@ interface Option {
   cost: number;
   givenAway: number;
   describe: string;
+  upgrade: { to: string; givenPerSeat: number; freedPerSeat: number } | null;
 }
 
 interface Item {
@@ -146,6 +147,28 @@ export default function Console() {
 
   const approvedCount = Object.values(standing).filter((s) => s.status === "approved").length;
 
+  /**
+   * The day's bill, as currently selected.
+   *
+   * This used to read `meta.proposed_cost_usd` — the server's total from the
+   * moment the run finished. Swap a 15% discount for a reminder and the number
+   * at the top of the screen didn't move, which makes it decoration. It's
+   * counted from the cards now, so the total the marketer is looking at is
+   * always the total they'd actually commit to.
+   */
+  const proposed = useMemo(() => {
+    if (!items) return { cost: 0, seats: 0 };
+    return items.reduce(
+      (acc, i) => {
+        if (i.decision.outcome !== "offer") return acc;
+        const id = standing[i.cart.cart_id]?.offerId ?? i.decision.offer_id;
+        const opt = i.options.find((o) => o.id === id);
+        return { cost: acc.cost + (opt?.cost ?? 0), seats: acc.seats + (opt?.givenAway ?? 0) };
+      },
+      { cost: 0, seats: 0 },
+    );
+  }, [items, standing]);
+
   const cardViolations = items?.flatMap((i) =>
     i.decision.violations.map((v) => `${i.cart.cart_id}: ${v}`),
   ) ?? [];
@@ -177,11 +200,11 @@ export default function Console() {
           <span className="spend">
             {approvedCount === 0 ? (
               <>
-                if you approve everything: <b>${meta.proposed_cost_usd.toFixed(2)}</b>
-                {meta.proposed_given_away_usd > 0 && (
+                if you approve everything: <b>${proposed.cost.toFixed(2)}</b>
+                {proposed.seats > 0 && (
                   <>
                     {" "}
-                    (<b>${meta.proposed_given_away_usd.toFixed(2)}</b> of it seats, not cash)
+                    (<b>${proposed.seats.toFixed(2)}</b> of it seats, not cash)
                   </>
                 )}
               </>
@@ -221,7 +244,7 @@ export default function Console() {
         <div className={`counters${filter ? " is-filtered" : ""}`}>
           <Counter
             n={meta.total}
-            label="Carts"
+            label="Reviewed"
             tone=""
             active={filter === null}
             onClick={() => setFilter(null)}
@@ -229,21 +252,21 @@ export default function Console() {
           <span className="split" aria-hidden="true" />
           <Counter
             n={groups.offer.length}
-            label="Offers"
+            label="Your decision"
             tone="offer"
             active={filter === "offer"}
             onClick={() => setFilter(filter === "offer" ? null : "offer")}
           />
           <Counter
             n={groups.hold.length}
-            label="Held"
+            label="Nothing today"
             tone="hold"
             active={filter === "hold"}
             onClick={() => setFilter(filter === "hold" ? null : "hold")}
           />
           <Counter
             n={groups.blocked.length}
-            label="Blocked"
+            label="No consent"
             tone="blocked"
             active={filter === "blocked"}
             onClick={() => setFilter(filter === "blocked" ? null : "blocked")}
@@ -312,6 +335,20 @@ export default function Console() {
     </>
   );
 }
+
+const SEGMENT: Record<string, string> = {
+  loyal: "a regular",
+  first_timer: "a first-time buyer",
+  lapsed: "a lapsed fan",
+  occasional: "an occasional buyer",
+};
+
+const LIKELIHOOD: Record<string, string> = {
+  high: "very likely to finish on their own",
+  medium: "might finish on their own",
+  low: "unlikely to come back without us",
+  unknown: "there's no way to tell whether they'd come back",
+};
 
 function Counter({
   n,
@@ -385,6 +422,13 @@ function Card({
 }) {
   const { decision: d, cart } = item;
   const isOffer = d.outcome === "offer";
+
+  // The chain is the one part of this screen a marketer opens when they don't
+  // believe the answer, so it can't be the place we start printing field
+  // values. "reminder_only" and "approve → null" are what the code calls
+  // things; nobody outside this repo should have to learn them.
+  const name = (id: string | null) =>
+    (id && (item.options.find((o) => o.id === id)?.describe ?? "")) || "nothing";
   const status = standing?.status ?? null;
 
   const offerId = standing?.offerId ?? d.offer_id;
@@ -414,14 +458,16 @@ function Card({
           </span>
         )}
         <span className="facts">
+          {/* Leads, because it's the fact that decides the offer. It used to sit
+              dimmed at the far right of the row, which is where you put
+              something nobody needs to read. */}
+          left <b className="stale-n">{cart.abandoned_hours_ago}h ago</b> ·{" "}
           <b>{cart.seats}</b> in {cart.section} · <b>${cart.cart_value_usd.toFixed(0)}</b> ·{" "}
           {cart.lifetime_tickets} lifetime ·{" "}
           {cart.last_purchase_days_ago === null
             ? "never bought"
             : `bought ${cart.last_purchase_days_ago}d ago`}
         </span>
-        <span className="head-spacer" />
-        <span className="stale">{cart.abandoned_hours_ago}h stale</span>
       </div>
 
       <div className={laneClass}>
@@ -438,6 +484,32 @@ function Card({
             </span>
           )}
         </div>
+        {/* An upgrade takes no cash, so its price looks made up unless the two
+            lines behind it are on the card. Only shown for the upgrade — every
+            other offer's price is a percentage anyone can check. */}
+        {isOffer && chosen?.upgrade && (
+          <div className="breakdown">
+            <div>
+              <span>give away</span>
+              <span>
+                {cart.seats} {chosen.upgrade.to} · ${chosen.upgrade.givenPerSeat.toFixed(2)} each
+              </span>
+              <b>${(chosen.upgrade.givenPerSeat * cart.seats).toFixed(2)}</b>
+            </div>
+            <div>
+              <span>free up</span>
+              <span>
+                {cart.seats} {cart.section} · ${chosen.upgrade.freedPerSeat.toFixed(2)} each
+              </span>
+              <b>${(chosen.upgrade.freedPerSeat * cart.seats).toFixed(2)}</b>
+            </div>
+            <div className="breakdown-total">
+              <span>costs the club</span>
+              <span />
+              <b>${chosen.cost.toFixed(2)}</b>
+            </div>
+          </div>
+        )}
         <p className="lane-reason">
           {isOffer
             ? standing?.offerId && standing.offerId !== d.offer_id
@@ -465,35 +537,43 @@ function Card({
           <summary>How it got here</summary>
           {d.read && (
             <div className="stage">
-              <span className="stage-name">1 · Analyst — who is this?</span>
+              <span className="stage-name">1 · Who is this fan?</span>
               <p className="stage-body">
-                <b>{d.read.segment.replace("_", " ")}</b>, chance they finish on their own:{" "}
-                <b>{d.read.return_likelihood}</b>. {d.read.evidence}
-                {d.read.risk_flags.length > 0 && <> Flags: {d.read.risk_flags.join("; ")}.</>}
+                <b>{SEGMENT[d.read.segment] ?? d.read.segment.replace("_", " ")}</b>, and{" "}
+                <b>{LIKELIHOOD[d.read.return_likelihood] ?? d.read.return_likelihood}</b>.{" "}
+                {d.read.evidence}
+                {d.read.risk_flags.length > 0 && (
+                  <> Worth knowing: {d.read.risk_flags.join("; ")}.</>
+                )}
               </p>
             </div>
           )}
           {d.proposal && (
             <div className="stage">
-              <span className="stage-name">2 · Strategist — what should we give them?</span>
+              <span className="stage-name">2 · What should we send them?</span>
               <p className="stage-body">
-                Proposed <b>{d.proposal.offer_id}</b>. {d.proposal.reason}
+                Suggested <b>{name(d.proposal.offer_id)}</b>. {d.proposal.reason}
               </p>
             </div>
           )}
           {d.review && (
             <div className="stage">
-              <span className="stage-name">3 · Reviewer — should this really go out?</span>
+              <span className="stage-name">3 · Should it actually go out?</span>
               <p className="stage-body">
-                <b className={`verdict-${d.review.verdict}`}>{d.review.verdict}</b>
-                {d.review.replacement_offer_id && <> → {d.review.replacement_offer_id}</>}.{" "}
+                <b className={`verdict-${d.review.verdict}`}>
+                  {d.review.verdict === "approve"
+                    ? "Agreed."
+                    : d.review.verdict === "veto"
+                      ? "Said it shouldn't go."
+                      : `Changed it to ${name(d.review.replacement_offer_id)}.`}
+                </b>{" "}
                 {d.review.objection}
               </p>
             </div>
           )}
           {d.gate_reason && (
             <div className="stage">
-              <span className="stage-name">0 · Policy — checked before any agent ran</span>
+              <span className="stage-name">0 · Checked before any of this ran</span>
               <p className="stage-body">{d.gate_reason}</p>
             </div>
           )}

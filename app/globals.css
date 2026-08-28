@@ -298,14 +298,11 @@ main {
 }
 .facts b { color: var(--ink); font-weight: 600; }
 
-.head-spacer { flex: 1 1 auto; }
 
-.stale {
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--ink-3);
+/* The cart's age decides which offer it can get, so it reads as a fact
+   rather than as metadata. */
+.stale-n {
+  color: var(--ink-1);
 }
 
 /* ---------- the offer lane ---------------------------------- */
@@ -606,4 +603,30 @@ main {
   border-left: 2px solid var(--rule-strong);
   font-size: 13px;
   color: var(--ink-2);
+}
+
+/* The two lines behind an upgrade's price. Monospace and right-aligned so the
+   figures line up and the subtraction reads as arithmetic. */
+.breakdown {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-2);
+  margin: 10px 0 0;
+  padding: 10px 12px 8px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.18);
+}
+.breakdown > div {
+  display: grid;
+  grid-template-columns: 7rem 1fr auto;
+  gap: 10px;
+  padding: 2px 0;
+}
+.breakdown > div > span:first-child { color: var(--ink-3); }
+.breakdown b { color: var(--ink-1); font-weight: 500; }
+.breakdown-total {
+  border-top: 1px solid var(--line);
+  margin-top: 5px;
+  padding-top: 6px !important;
 }

@@ -2,7 +2,13 @@ import { NextResponse } from "next/server";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { runPipeline } from "../../../lib/pipeline.ts";
-import { CATALOG, describeOffer, totalCost } from "../../../lib/catalog.ts";
+import {
+  CATALOG,
+  describeOffer,
+  totalCost,
+  upgradeTarget,
+  SECTION_PRICE,
+} from "../../../lib/catalog.ts";
 import { buildCopy } from "../../../lib/copy.ts";
 import type { CartFacts } from "../../../lib/schema.ts";
 
@@ -54,6 +60,17 @@ export async function POST(request: Request) {
           // describe whatever the marketer swapped to instead of stubbornly
           // showing what the agent proposed.
           describe: describeOffer(o.id, cart),
+          // An upgrade is the one offer whose price isn't obvious from its
+          // name — "free seat upgrade" next to $36 invites the question, so
+          // the card can show the two lines that make up the number.
+          upgrade:
+            o.kind === "upgrade" && upgradeTarget(cart.section)
+              ? {
+                  to: upgradeTarget(cart.section)!,
+                  givenPerSeat: SECTION_PRICE[upgradeTarget(cart.section)!],
+                  freedPerSeat: Math.round((cart.cart_value_usd / cart.seats) * 100) / 100,
+                }
+              : null,
         })),
       };
     });
