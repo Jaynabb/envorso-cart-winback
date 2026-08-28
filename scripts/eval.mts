@@ -4,6 +4,17 @@ import { runPipeline, type RunResult } from "../lib/pipeline.ts";
 import { getOffer } from "../lib/catalog.ts";
 
 /**
+ * The simulated outage is a demo affordance, not part of the agents.
+ *
+ * WINBACK_FAIL_IDS lives in .env.local so the console can show the failure
+ * path on demand, and this script loads the same file — which quietly scored
+ * a faked 529 as the agents getting a cart wrong, and took the eval from 5/5
+ * to 4/5. A measurement tool that reads the demo switches isn't measuring the
+ * thing it claims to.
+ */
+delete process.env.WINBACK_FAIL_IDS;
+
+/**
  * Score the agents against the hand-written answer key.
  *
  *   node --env-file=.env.local scripts/eval.mts
