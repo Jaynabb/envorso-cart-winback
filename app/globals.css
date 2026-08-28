@@ -660,3 +660,7 @@ main {
 .custom-pct { color: var(--ink-3); }
 .custom-preview { color: var(--ink-1); min-width: 4.5rem; }
 .custom button[disabled] { opacity: 0.4; cursor: default; }
+
+/* Needs review. Red, because it is the only group on the page that means
+   something is wrong rather than something was decided. */
+.counter-broken .counter-n { color: var(--red); }

@@ -172,5 +172,18 @@ export const DecisionSchema = z.object({
   operator_note: z.string().nullable(),
   /** Invariant violations found after the fact. Empty is the healthy case. */
   violations: z.array(z.string()),
+  /**
+   * Something went wrong, as opposed to something was decided.
+   *
+   * A cart held because it's an hour old and a cart held because the API
+   * returned a 529 are both "no offer today", and putting them in the same pile
+   * is how the second one gets ignored. The first is the system working. The
+   * second needs a person to look at it and probably re-run.
+   *
+   * Set only where the fault is ours: an agent call that failed, or an agent
+   * that returned something that isn't a valid offer for this cart. A veto, or
+   * a strategist deciding nothing would work, is a judgement and not a fault.
+   */
+  fault: z.boolean(),
 });
 export type Decision = z.infer<typeof DecisionSchema>;

@@ -46,7 +46,7 @@ interface Meta {
   cost_usd: number;
 }
 
-type Filter = "offer" | "hold" | "blocked" | null;
+type Filter = "offer" | "hold" | "blocked" | "broken" | null;
 type Standing = {
   status: "approved" | "rejected" | null;
   offerId: string | null;
@@ -147,10 +147,16 @@ export default function Console() {
 
   const groups = useMemo(() => {
     if (!items) return null;
+    // Something went wrong is not the same as something was decided, and the
+    // two used to sit in the same pile. A cart held because it's an hour old
+    // and a cart held because the API returned a 529 both read "no offer
+    // today", which is how the second one gets scrolled past.
+    const broke = (i: Item) => i.decision.fault || i.decision.violations.length > 0;
     return {
-      offer: items.filter((i) => i.decision.outcome === "offer"),
-      hold: items.filter((i) => i.decision.outcome === "hold"),
-      blocked: items.filter((i) => i.decision.outcome === "blocked"),
+      offer: items.filter((i) => i.decision.outcome === "offer" && !broke(i)),
+      hold: items.filter((i) => i.decision.outcome === "hold" && !broke(i)),
+      blocked: items.filter((i) => i.decision.outcome === "blocked" && !broke(i)),
+      broken: items.filter(broke),
     };
   }, [items]);
 
@@ -295,11 +301,40 @@ export default function Console() {
             active={filter === "blocked"}
             onClick={() => setFilter(filter === "blocked" ? null : "blocked")}
           />
+          {/* Only appears when there is something in it. A zero here every
+              morning would train people not to look at it. */}
+          {groups.broken.length > 0 && (
+            <Counter
+              n={groups.broken.length}
+              label="Needs review"
+              tone="broken"
+              active={filter === "broken"}
+              onClick={() => setFilter(filter === "broken" ? null : "broken")}
+            />
+          )}
         </div>
       )}
 
       {groups && (
         <>
+          <Section
+            title="Needs review — something went wrong here"
+            items={groups.broken}
+            show={!filter || filter === "broken"}
+            render={(item) => (
+              <Card
+                key={item.cart.cart_id}
+                item={item}
+                standing={standing[item.cart.cart_id]}
+                editing={editing === item.cart.cart_id}
+                copied={copied}
+                onEdit={() => setEditing(editing === item.cart.cart_id ? null : item.cart.cart_id)}
+                onPick={(id, pct) => pickOffer(item, id, pct)}
+                onDecide={(st) => decide(item.cart.cart_id, st)}
+                onCopy={copyText}
+              />
+            )}
+          />
           <Section
             title="Needs your decision"
             items={groups.offer}

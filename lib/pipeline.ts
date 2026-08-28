@@ -66,6 +66,7 @@ function hold(cart: CartFacts, headline: string, extra: Partial<Decision> = {}):
     gate_reason: null,
     operator_note: operatorNote(cart),
     violations: [],
+    fault: false,
     ...extra,
   };
 }
@@ -104,7 +105,29 @@ async function decideOne(
         gate_reason: gated.reason,
         operator_note: operatorNote(cart),
         violations: [],
+        fault: false,
       },
+    };
+  }
+
+  // A way to see the failure path without waiting for a real outage.
+  //
+  // WINBACK_FAIL_IDS=C-1002 makes those carts fail their first agent call, the
+  // same way a 529 does. Kept because "what happens when the agent is wrong" is
+  // a claim that ought to be demonstrable rather than described.
+  if (
+    (process.env.WINBACK_FAIL_IDS ?? "")
+      .split(",")
+      .map((x) => x.trim())
+      .includes(cart.cart_id)
+  ) {
+    return {
+      usage: emptyUsage(),
+      decision: hold(
+        cart,
+        "The model was overloaded and didn't answer (529), on both attempts. Nothing is wrong with the cart — re-run it.",
+        { fault: true },
+      ),
     };
   }
 
@@ -113,7 +136,7 @@ async function decideOne(
   if (!readResult.ok) {
     return {
       usage: readResult.usage ?? emptyUsage(),
-      decision: hold(cart, `Couldn't read this fan — ${readResult.note}`),
+      decision: hold(cart, `Couldn't read this fan — ${readResult.note}`, { fault: true }),
     };
   }
   const read = readResult.value;
@@ -123,7 +146,7 @@ async function decideOne(
   if (!proposalResult.ok) {
     return {
       usage: sumUsage([readResult.usage, proposalResult.usage]),
-      decision: hold(cart, `Couldn't propose an offer — ${proposalResult.note}`, { read }),
+      decision: hold(cart, `Couldn't propose an offer — ${proposalResult.note}`, { read, fault: true }),
     };
   }
   let proposal = proposalResult.value;
@@ -172,7 +195,7 @@ async function decideOne(
       decision: hold(
         cart,
         `Proposed "${proposal.offer_id}", which isn't an offer available for this cart. Held rather than guessed at.`,
-        { read, proposal },
+        { read, proposal, fault: true },
       ),
     };
   }
@@ -186,6 +209,7 @@ async function decideOne(
       decision: hold(cart, `Couldn't review this offer — ${reviewResult.note}`, {
         read,
         proposal,
+        fault: true,
       }),
     };
   }
@@ -229,7 +253,7 @@ async function decideOne(
         decision: hold(
           cart,
           `Adjusted to "${review.replacement_offer_id}", which isn't a valid alternative for this cart. Held rather than sending the original.`,
-          { read, proposal, review },
+          { read, proposal, review, fault: true },
         ),
       };
     }
@@ -256,6 +280,7 @@ async function decideOne(
         .filter(Boolean)
         .join(" ") || null,
     violations: [],
+    fault: false,
   };
   decision.violations = checkInvariants(cart, decision);
   return { usage, decision };
