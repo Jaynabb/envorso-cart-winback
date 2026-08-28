@@ -39,7 +39,8 @@ export async function POST(request: Request) {
         ? carts.filter((c) => new Set(ids.map(String)).has(c.cart_id))
         : carts;
 
-    const result = await runPipeline(queue);
+    const isRetry = Array.isArray(ids) && ids.length > 0;
+    const result = await runPipeline(queue, { isRetry });
 
     // Everything the console needs to render a card without re-deriving policy
     // in the browser: the cart it came from, what each catalog option would cost

@@ -81,7 +81,17 @@ function hold(cart: CartFacts, headline: string, extra: Partial<Decision> = {}):
  * but it belongs in whatever eventually does the sending, not in a demo that
  * pretends to run an experiment it can't run.
  */
-export interface RunOptions {}
+export interface RunOptions {
+  /**
+   * True when the console asked for specific carts rather than the whole queue.
+   *
+   * Only WINBACK_FAIL_IDS cares. A simulated outage that keeps happening isn't
+   * an outage, it's a broken cart — and it makes the recovery it exists to
+   * demonstrate impossible to show. So the fault fires on a full run and clears
+   * on the re-run, which is how a real 529 behaves.
+   */
+  isRetry?: boolean;
+}
 
 async function decideOne(
   cart: CartFacts,
@@ -116,6 +126,7 @@ async function decideOne(
   // same way a 529 does. Kept because "what happens when the agent is wrong" is
   // a claim that ought to be demonstrable rather than described.
   if (
+    !opts.isRetry &&
     (process.env.WINBACK_FAIL_IDS ?? "")
       .split(",")
       .map((x) => x.trim())

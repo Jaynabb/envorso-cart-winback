@@ -404,6 +404,7 @@ export default function Console() {
                 onPick={(id, pct) => pickOffer(item, id, pct)}
                 onDecide={(s) => decide(item.cart.cart_id, s)}
                 onCopy={copyText}
+                tried={tries[item.cart.cart_id]}
               />
             )}
           />
@@ -422,6 +423,7 @@ export default function Console() {
                 onPick={() => {}}
                 onDecide={() => {}}
                 onCopy={copyText}
+                tried={tries[item.cart.cart_id]}
               />
             )}
           />
@@ -440,6 +442,7 @@ export default function Console() {
                 onPick={() => {}}
                 onDecide={() => {}}
                 onCopy={copyText}
+                tried={tries[item.cart.cart_id]}
               />
             )}
           />
