@@ -259,7 +259,7 @@ export default function Console() {
           />
           <Counter
             n={groups.hold.length}
-            label="Nothing today"
+            label="Not yet"
             tone="hold"
             active={filter === "hold"}
             onClick={() => setFilter(filter === "hold" ? null : "hold")}
@@ -295,7 +295,7 @@ export default function Console() {
             )}
           />
           <Section
-            title="Held — nothing goes out today"
+            title="Not yet — check these again later"
             items={groups.hold}
             show={!filter || filter === "hold"}
             render={(item) => (
