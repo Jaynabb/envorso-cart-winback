@@ -682,3 +682,12 @@ main {
 }
 .band-btn:hover:not(:disabled) { border-color: var(--green-dim); color: var(--green); }
 .band-btn:disabled { opacity: 0.4; cursor: default; }
+
+/* The result of a re-run, on the card it was run for. */
+.tried {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  color: var(--amber);
+  margin: 10px 0 0;
+}

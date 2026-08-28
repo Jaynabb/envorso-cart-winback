@@ -81,6 +81,16 @@ export default function Console() {
   const [ranAt, setRanAt] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>(null);
   const [standing, setStanding] = useState<Record<string, Standing>>({});
+  /**
+   * Re-run attempts per cart, so a second failure doesn't look like a dead
+   * button.
+   *
+   * The fault path answers in milliseconds — it never reaches the API — so the
+   * spinner flashes past and a card that fails again looks identical to one
+   * that was never re-run. Whether the last attempt worked is the whole
+   * question, and the screen has to answer it.
+   */
+  const [tries, setTries] = useState<Record<string, { n: number; at: string }>>({});
   const [editing, setEditing] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
 
@@ -105,10 +115,19 @@ export default function Console() {
         setFatal(body.error ?? `The run failed (${res.status}).`);
         return;
       }
+      const stamp = new Date().toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+      });
       if (ids?.length) {
         const fresh = new Map<string, Item>(
           (body.items as Item[]).map((i) => [i.cart.cart_id, i]),
         );
+        setTries((t) => {
+          const next = { ...t };
+          for (const id of ids) next[id] = { n: (t[id]?.n ?? 0) + 1, at: stamp };
+          return next;
+        });
         setItems((prev) => (prev ?? []).map((i) => fresh.get(i.cart.cart_id) ?? i));
         // Only the re-run carts lose their standing. Everything else keeps it.
         setStanding((st) => {
@@ -119,6 +138,7 @@ export default function Console() {
       } else {
         setItems(body.items);
         setStanding({});
+        setTries({});
       }
       setMeta(body.meta);
       setRanAt(
@@ -365,6 +385,7 @@ export default function Console() {
                 onPick={(id, pct) => pickOffer(item, id, pct)}
                 onDecide={(st) => decide(item.cart.cart_id, st)}
                 onCopy={copyText}
+                tried={tries[item.cart.cart_id]}
               />
             )}
           />
@@ -504,6 +525,7 @@ function Card({
   onPick,
   onDecide,
   onCopy,
+  tried,
 }: {
   item: Item;
   standing?: Standing;
@@ -513,6 +535,7 @@ function Card({
   onPick: (offerId: string, percent?: number) => void;
   onDecide: (status: "approved" | "rejected" | null) => void;
   onCopy: (key: string, text: string) => void;
+  tried?: { n: number; at: string };
 }) {
   const { decision: d, cart } = item;
   const isOffer = d.outcome === "offer";
@@ -625,6 +648,19 @@ function Card({
           blank, and a blank next to a first-timer's 15% is how a season-ticket
           holder hears that a stranger got a better deal. */}
       {d.operator_note && <p className="op-note">{d.operator_note}</p>}
+
+      {/* Said out loud, because a second failure and a button that did nothing
+          look the same on screen otherwise. */}
+      {tried && (
+        <p className="tried">
+          Re-run at {tried.at}
+          {tried.n > 1 ? ` · ${tried.n} attempts` : ""} — {
+            d.fault || d.violations.length > 0
+              ? "still failing"
+              : "this one came back"
+          }
+        </p>
+      )}
 
       {d.violations.length > 0 && (
         <div className="card-violation">
