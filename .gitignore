@@ -15,3 +15,4 @@ outputs/
 .DS_Store
 *.log
 tsconfig.tsbuildinfo
+.next-build
