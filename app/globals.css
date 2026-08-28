@@ -287,8 +287,10 @@ main {
   border-radius: 2px;
   padding: 2px 6px;
 }
+/* Colour means one thing per hue on this screen, so a segment badge doesn't
+   borrow amber from the "not yet" lane. Only loyal is coloured, because it's
+   the only badge that changes how carefully a marketer should act. */
 .seg-loyal { color: var(--green); border-color: var(--green-dim); }
-.seg-lapsed { color: var(--amber); border-color: var(--amber); }
 
 .facts {
   font-family: var(--mono);

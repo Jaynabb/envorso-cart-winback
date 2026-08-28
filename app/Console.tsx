@@ -339,8 +339,7 @@ export default function Console() {
 const SEGMENT: Record<string, string> = {
   loyal: "a regular",
   first_timer: "a first-time buyer",
-  lapsed: "a lapsed fan",
-  occasional: "an occasional buyer",
+  past_buyer: "someone who has bought before",
 };
 
 const LIKELIHOOD: Record<string, string> = {

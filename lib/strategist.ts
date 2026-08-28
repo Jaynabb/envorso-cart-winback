@@ -54,7 +54,7 @@ You may pick a dearer one. What you may not do is pick it quietly: if you skip p
 
 Restraint is the default, not the goal — an offer too thin to move anyone is its own kind of failure. It burns the one message this fan will read and gives them nothing to act on.
 
-Worked example — a fan read as lapsed with a low chance of returning unaided: a bare reminder is not a serious answer. They have already shown you a year of not coming back; being reminded is not new information. If the read says they won't return on their own, give them an actual reason to.
+Worked example — a past buyer with a low chance of returning unaided: a bare reminder is not a serious answer. They have already shown you a year of not coming back; being reminded is not new information. If the read says they won't return on their own, give them an actual reason to.
 
 The same goes for "unknown". A first-time buyer with no history is not a safe bet you should spend little on — they are the one fan on the page you have *no* evidence about, and the definition above says to treat that as low. Winning a first purchase is how a club with a small fan base grows, so this is where a real offer is most defensible, not least.
 

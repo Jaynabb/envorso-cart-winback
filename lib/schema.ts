@@ -35,14 +35,26 @@ export type CartFacts = z.infer<typeof CartFactsSchema>;
  * tickets is loyal whether this cart is $50 or $500, and the cart value has no
  * business in this field.
  */
-export const SEGMENTS = ["first_timer", "occasional", "loyal", "lapsed"] as const;
+export const SEGMENTS = ["first_timer", "past_buyer", "loyal"] as const;
 export type Segment = (typeof SEGMENTS)[number];
 
+/**
+ * Three, and the split is the one that matters to the club's money.
+ *
+ * There used to be four — "occasional" and "lapsed" as well — and neither
+ * changed a single decision. What sets the discount is whether this fan has
+ * ever bought a ticket, so that is the line the labels are drawn on. A badge
+ * that sorts fans into buckets nothing acts on is a badge that teaches a
+ * marketer to read meaning into a colour.
+ *
+ * "loyal" survives despite not changing the offer either, because it is the
+ * one the milestone speaks to and the one a marketer needs to see before they
+ * approve anything: this is a fan the club cannot afford to be clumsy with.
+ */
 export const SEGMENT_DEFINITIONS: Record<Segment, string> = {
-  first_timer: "Has never completed a purchase. No history to predict anything from.",
-  occasional: "Has bought a handful of times AND bought within roughly the last six months. Still engaged, just not a regular.",
-  loyal: "Buys regularly — ten or more tickets — and bought recently. The club's core.",
-  lapsed: "Has bought before but not for roughly six months or more. Recency decides this, not how many they bought: one ticket 300 days ago is lapsed, not occasional.",
+  first_timer: "Has never completed a purchase. No history to predict anything from, and the club is buying a supporter rather than discounting a cart.",
+  past_buyer: "Has bought at least one ticket before, whenever that was. They know what a seat costs and chose not to buy this time.",
+  loyal: "A past buyer who buys regularly — ten or more tickets — and bought recently. The club's core, and the one relationship a clumsy message actually costs something.",
 };
 
 /**

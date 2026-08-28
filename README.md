@@ -193,7 +193,7 @@ every campaign looks like it works, including a bad one.
 **The marketer's edits.** Every card has Approve, Edit and Reject on it. When a marketer
 edits an offer before sending, they're telling us the agent got it wrong — and by picking
 a different one, they're telling us what it should have been. Logging those clicks grades
-the tool for free, with nobody doing extra work. If lapsed fans keep getting bumped from
+the tool for free, with nobody doing extra work. If past buyers keep getting bumped from
 10% to 15%, the rule about purchase history is wrong.
 
 ### What it costs to run
